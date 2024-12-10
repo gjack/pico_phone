@@ -47,6 +47,26 @@ Object is_phone_number_valid(Object self, String str, String cc) {
   }
 }
 
+Object is_phone_number_possible(Object self, String str, String cc) {
+  std::string phone_number = str.c_str();
+  std::string country_code = cc.c_str();
+
+  if (country_code.empty() || phone_number.empty()) {
+    return Qnil;
+  }
+
+  PhoneNumber parsed_number;
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  auto result = phone_util.Parse(phone_number, country_code, &parsed_number);
+
+  if (result == PhoneNumberUtil::NO_PARSING_ERROR && phone_util.IsPossibleNumber(parsed_number)) {
+    return Qtrue;
+  } else {
+    return Qfalse;
+  }
+}
+
 Object pico_phone_is_valid_for_default_country(Object self, String phone_number) {
   String country_code = self.iv_get("@default_country");
   return is_phone_number_valid(self, phone_number, country_code);
@@ -56,13 +76,24 @@ Object pico_phone_is_valid_for_country(Object self, String phone_number, String 
   return is_phone_number_valid(self, phone_number, country_code);
 }
 
+Object pico_phone_is_possible_for_default_country(Object self, String phone_number) {
+  String country_code = self.iv_get("@default_country");
+  return is_phone_number_possible(self, phone_number, country_code);
+}
+
+Object pico_phone_is_possible_for_country(Object self, String phone_number, String country_code) {
+  return is_phone_number_possible(self, phone_number, country_code);
+}
+
 extern "C"
 void Init_pico_phone() {
   Module rb_mPicoPhone = define_module("PicoPhone")
     .define_singleton_method("default_country=", &pico_phone_set_default_country)
     .define_singleton_method("default_country", &pico_phone_get_default_country)
     .define_singleton_method("valid?", &pico_phone_is_valid_for_default_country)
-    .define_singleton_method("valid_for_country?", &pico_phone_is_valid_for_country);
+    .define_singleton_method("valid_for_country?", &pico_phone_is_valid_for_country)
+    .define_singleton_method("possible?", &pico_phone_is_possible_for_default_country)
+    .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
 
   rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
 
