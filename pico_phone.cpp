@@ -95,6 +95,9 @@ void Init_pico_phone() {
     .define_singleton_method("possible?", &pico_phone_is_possible_for_default_country)
     .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
 
+  Data_Type<PhoneNumber> rb_cPhoneNumber = define_class_under<PhoneNumber>(rb_mPicoPhone, "PhoneNumber")
+    .define_constructor(Constructor<PhoneNumber>());
+
   rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
 
 }
