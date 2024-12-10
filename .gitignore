@@ -1,0 +1,4 @@
+mkmf.log
+*.bundle
+*.o
+.vscode
