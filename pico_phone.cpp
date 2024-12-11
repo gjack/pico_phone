@@ -145,8 +145,8 @@ VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
 
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
-  std::string phone_number_value(RSTRING_PTR(str), RSTRING_LEN(str));
-  std::string country_code(RSTRING_PTR(input_country_code), RSTRING_LEN(input_country_code));
+  std::string phone_number_value(StringValuePtr(str), RSTRING_LEN(str));
+  std::string country_code(StringValuePtr(input_country_code), RSTRING_LEN(input_country_code));
 
   PhoneNumber parsed_number;
 
@@ -171,7 +171,7 @@ void Init_pico_phone() {
     .define_singleton_method("possible?", &pico_phone_is_possible_for_default_country)
     .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
 
-  Class rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber");
+  rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber");
 
   rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
   rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
