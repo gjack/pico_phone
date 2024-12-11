@@ -8,6 +8,38 @@
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
+static VALUE rb_cPhoneNumber;
+static VALUE rb_mPicoPhone;
+
+size_t phone_number_size(const void *data) { return sizeof(PhoneNumber); }
+
+void phone_number_free(void *data) {
+  PhoneNumber *phone_number = static_cast<PhoneNumber *>(data);
+  phone_number->~PhoneNumber();
+  xfree(data);
+}
+
+static const rb_data_type_t phone_number_type = {
+  .wrap_struct_name = "phone_number",
+    .function =
+        {
+            .dmark = NULL,
+            .dfree = phone_number_free,
+            .dsize = phone_number_size,
+        },
+    .parent = NULL,
+    .data = NULL,
+    .flags = RUBY_TYPED_FREE_IMMEDIATELY,
+};
+
+VALUE rb_phone_number_alloc(VALUE self) {
+  void *phone_number_data = ALLOC(PhoneNumber);
+  PhoneNumber *phone_number = new (phone_number_data) PhoneNumber();
+  phone_number = phone_number;
+
+  return TypedData_Wrap_Struct(self, &phone_number_type, phone_number);
+}
+
 
 void pico_phone_set_default_country(Object self, String str_code) {
   if (NIL_P(str_code)) {
