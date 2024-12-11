@@ -117,6 +117,50 @@ Object pico_phone_is_possible_for_country(Object self, String phone_number, Stri
   return is_phone_number_possible(self, phone_number, country_code);
 }
 
+VALUE phone_number_nullify_ivars(Object self) {
+  self.iv_set("@input_country_code", Qnil);
+
+  return Qtrue;
+}
+
+VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
+  VALUE str;
+  VALUE input_country_code;
+
+  rb_scan_args(argc, argv, "11", &str, &input_country_code);
+  rb_iv_set(self, "@input_country_code", input_country_code);
+
+  if (RB_NIL_P(input_country_code)) {
+    input_country_code = rb_iv_get(rb_mPicoPhone, "@default_country");
+  }
+
+  if (RB_FIXNUM_P(str)) {
+    str = rb_fix2str(str, 10);
+  } else if (!RB_TYPE_P(str, T_STRING)) {
+    return phone_number_nullify_ivars(self);
+  }
+
+  PhoneNumber *phone_number;
+
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  std::string phone_number_value(RSTRING_PTR(str), RSTRING_LEN(str));
+  std::string country_code(RSTRING_PTR(input_country_code), RSTRING_LEN(input_country_code));
+
+  PhoneNumber parsed_number;
+
+  auto result = phone_util.ParseAndKeepRawInput(phone_number_value, country_code, &parsed_number);
+
+  if (result != PhoneNumberUtil::NO_PARSING_ERROR) {
+    phone_number_nullify_ivars(self);
+  }
+
+  phone_number->Swap(&parsed_number);
+
+  return self;
+}
+
 extern "C"
 void Init_pico_phone() {
   Module rb_mPicoPhone = define_module("PicoPhone")
@@ -129,6 +173,7 @@ void Init_pico_phone() {
 
   Class rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber");
 
+  rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
+  rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
   rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
-
 }
