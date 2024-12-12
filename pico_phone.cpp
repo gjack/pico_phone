@@ -163,8 +163,7 @@ VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
 
 extern "C"
 void Init_pico_phone() {
-  Module rb_mPicoPhone = define_module("PicoPhone")
-    .define_singleton_method("default_country=", &pico_phone_set_default_country)
+  rb_mPicoPhone = define_module("PicoPhone")
     .define_singleton_method("default_country", &pico_phone_get_default_country)
     .define_singleton_method("valid?", &pico_phone_is_valid_for_default_country)
     .define_singleton_method("valid_for_country?", &pico_phone_is_valid_for_country)
