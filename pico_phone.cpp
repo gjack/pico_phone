@@ -118,7 +118,7 @@ Object pico_phone_is_possible_for_country(Object self, String phone_number, Stri
 }
 
 VALUE phone_number_nullify_ivars(Object self) {
-  self.iv_set("@input_country_code", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@input_country_code", Qnil);
 
   return Qtrue;
 }
