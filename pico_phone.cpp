@@ -175,11 +175,11 @@ void Init_pico_phone() {
     .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
 
     rb_define_singleton_method(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), -1);
+    rb_define_singleton_method(rb_mPicoPhone, "parse", reinterpret_cast<VALUE (*)(...)>(pico_phone_phone_number_parse), -1);
+    rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
 
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber");
 
-  rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
-  rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
-  rb_define_singleton_method(rb_mPicoPhone, "parse", reinterpret_cast<VALUE (*)(...)>(pico_phone_phone_number_parse), -1);
-  rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
+    rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
+    rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
 }
