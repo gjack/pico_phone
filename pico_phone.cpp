@@ -40,6 +40,10 @@ VALUE rb_phone_number_alloc(VALUE self) {
   return TypedData_Wrap_Struct(self, &phone_number_type, phone_number);
 }
 
+VALUE pico_phone_phone_number_parse(int argc, VALUE *argv, Object self) {
+  return rb_class_new_instance(argc, argv, rb_cPhoneNumber);
+}
+
 
 void pico_phone_set_default_country(VALUE str_code, Object self) {
   if (RB_NIL_P(str_code)) {
@@ -176,5 +180,6 @@ void Init_pico_phone() {
 
   rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
   rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
+  rb_define_singleton_method(rb_mPicoPhone, "parse", reinterpret_cast<VALUE (*)(...)>(pico_phone_phone_number_parse), -1);
   rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
 }
