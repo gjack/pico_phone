@@ -123,6 +123,7 @@ Object pico_phone_is_possible_for_country(Object self, String phone_number, Stri
 
 VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@input_country_code", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
 
   return Qtrue;
 }
@@ -165,6 +166,25 @@ VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
   return self;
 }
 
+Object is_parsed_phone_number_possible(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@possible"))) {
+    return rb_iv_get(self, "@possible");
+  }
+
+  std::string formatted_number;
+  PhoneNumber *phone_number;
+
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  if (phone_util.IsPossibleNumber(*phone_number)) {
+    return rb_iv_set(self, "@possible", Qtrue);
+  } else {
+    return rb_iv_set(self, "@possible", Qfalse);
+  }
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -178,7 +198,8 @@ void Init_pico_phone() {
     rb_define_singleton_method(rb_mPicoPhone, "parse", reinterpret_cast<VALUE (*)(...)>(pico_phone_phone_number_parse), -1);
     rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
 
-  rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber");
+  rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber")
+    .define_method("possible?", &is_parsed_phone_number_possible);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
