@@ -125,6 +125,7 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@input_country_code", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@valid", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@type", Qnil);
 
   return Qtrue;
 }
