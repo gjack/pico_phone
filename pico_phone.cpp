@@ -216,6 +216,59 @@ Object is_parsed_phone_number_valid(Object self) {
   }
 }
 
+Object parsed_phone_type(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@type"))) {
+    return rb_iv_get(self, "@type");
+  }
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  VALUE type_value;
+  switch (phone_util.GetNumberType(*phone_number))
+  {
+    case PhoneNumberUtil::FIXED_LINE:
+      type_value = rb_intern("fixed_line");
+      break;
+    case PhoneNumberUtil::MOBILE:
+      type_value = rb_intern("mobile");
+      break;
+    case PhoneNumberUtil::FIXED_LINE_OR_MOBILE:
+      type_value = rb_intern("fixed_line_or_mobile");
+      break;
+    case PhoneNumberUtil::TOLL_FREE:
+      type_value = rb_intern("toll_free");
+      break;
+    case PhoneNumberUtil::PREMIUM_RATE:
+      type_value = rb_intern("premium_rate");
+      break;
+    case PhoneNumberUtil::SHARED_COST:
+      type_value = rb_intern("shared_cost");
+      break;
+    case PhoneNumberUtil::VOIP:
+      type_value = rb_intern("voip");
+      break;
+    case PhoneNumberUtil::PERSONAL_NUMBER:
+      type_value = rb_intern("personal_number");
+      break;
+    case PhoneNumberUtil::PAGER:
+      type_value = rb_intern("pager");
+      break;
+    case PhoneNumberUtil::UAN:
+      type_value = rb_intern("uan");
+      break;
+    case PhoneNumberUtil::VOICEMAIL:
+      type_value = rb_intern("voicemail");
+      break;
+    default:
+      type_value = rb_intern("unknown");
+      break;
+  }
+  return rb_iv_set(self, "@type", rb_id2sym(type_value));
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -231,7 +284,8 @@ void Init_pico_phone() {
 
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber")
     .define_method("possible?", &is_parsed_phone_number_possible)
-    .define_method("valid?", &is_parsed_phone_number_valid);
+    .define_method("valid?", &is_parsed_phone_number_valid)
+    .define_method("type", &parsed_phone_type);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
