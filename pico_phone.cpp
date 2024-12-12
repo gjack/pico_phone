@@ -41,8 +41,8 @@ VALUE rb_phone_number_alloc(VALUE self) {
 }
 
 
-void pico_phone_set_default_country(Object self, String str_code) {
-  if (NIL_P(str_code)) {
+void pico_phone_set_default_country(VALUE str_code, Object self) {
+  if (RB_NIL_P(str_code)) {
     str_code = rb_str_new("ZZ", 2);
   }
 
@@ -170,6 +170,8 @@ void Init_pico_phone() {
     .define_singleton_method("valid_for_country?", &pico_phone_is_valid_for_country)
     .define_singleton_method("possible?", &pico_phone_is_possible_for_default_country)
     .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
+
+    rb_define_singleton_method(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), -1);
 
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber");
 
