@@ -124,6 +124,7 @@ Object pico_phone_is_possible_for_country(Object self, String phone_number, Stri
 VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@input_country_code", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@valid", Qnil);
 
   return Qtrue;
 }
@@ -171,7 +172,6 @@ Object is_parsed_phone_number_possible(Object self) {
     return rb_iv_get(self, "@possible");
   }
 
-  std::string formatted_number;
   PhoneNumber *phone_number;
 
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
@@ -182,6 +182,37 @@ Object is_parsed_phone_number_possible(Object self) {
     return rb_iv_set(self, "@possible", Qtrue);
   } else {
     return rb_iv_set(self, "@possible", Qfalse);
+  }
+}
+
+Object is_parsed_phone_number_valid(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@valid"))) {
+    return rb_iv_get(self, "@valid");
+  }
+
+  VALUE input_country_code = rb_iv_get(self, "@input_country_code");
+  if (RB_NIL_P(input_country_code)) {
+    input_country_code = rb_iv_get(rb_mPicoPhone, "@default_country");
+  }
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  if (!rb_str_equal(input_country_code, rb_str_new_literal("ZZ"))) {
+    std::string country_code(StringValuePtr(input_country_code), RSTRING_LEN(input_country_code));
+    if (phone_util.IsValidNumberForRegion(*phone_number, country_code)) {
+      return rb_iv_set(self, "@valid", Qtrue);
+    } else {
+      return rb_iv_set(self, "@valid", Qfalse);
+    }
+  }
+
+  if (phone_util.IsValidNumber(*phone_number)) {
+    return rb_iv_set(self, "@valid", Qtrue);;
+  } else {
+    return rb_iv_set(self, "@valid", Qfalse);
   }
 }
 
@@ -199,7 +230,8 @@ void Init_pico_phone() {
     rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
 
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber")
-    .define_method("possible?", &is_parsed_phone_number_possible);
+    .define_method("possible?", &is_parsed_phone_number_possible)
+    .define_method("valid?", &is_parsed_phone_number_valid);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
