@@ -299,6 +299,17 @@ String format_parsed_number_e164(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
 }
 
+String parsed_number_extension(Object self) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  if (phone_number->has_extension()) {
+    return phone_number->extension();
+  } else {
+    return String("");
+  }
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -318,7 +329,8 @@ void Init_pico_phone() {
     .define_method("type", &parsed_phone_type)
     .define_method("national", &format_parsed_number_national)
     .define_method("international", &format_parsed_international)
-    .define_method("e164", &format_parsed_number_e164);
+    .define_method("e164", &format_parsed_number_e164)
+    .define_method("extension", &parsed_number_extension);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
