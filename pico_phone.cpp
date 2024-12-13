@@ -45,12 +45,20 @@ VALUE pico_phone_phone_number_parse(int argc, VALUE *argv, Object self) {
 }
 
 
-void pico_phone_set_default_country(VALUE str_code, Object self) {
+void pico_phone_set_default_country(VALUE self, VALUE str_code) {
   if (RB_NIL_P(str_code)) {
     str_code = rb_str_new("ZZ", 2);
   }
 
   rb_ivar_set(self, rb_intern("@default_country"), str_code);
+}
+
+void pico_phone_set_default_extension_prefix(VALUE self, VALUE str_code) {
+  if (RB_NIL_P(str_code)) {
+    str_code = rb_str_new(";", 1);
+  }
+
+  rb_ivar_set(self, rb_intern("@default_extn_prefix"), str_code);
 }
 
 String pico_phone_get_default_country(Object self) {
@@ -120,6 +128,8 @@ Object pico_phone_is_possible_for_default_country(Object self, String phone_numb
 Object pico_phone_is_possible_for_country(Object self, String phone_number, String country_code) {
   return is_phone_number_possible(self, phone_number, country_code);
 }
+
+
 
 VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@input_country_code", Qnil);
@@ -278,6 +288,7 @@ static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::Ph
 
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
   std::string formatted_phone_number;
+  String extension_prefix = rb_iv_get(rb_mPicoPhone, "@default_extn_prefix");
 
   // if the phone number has an extension
   // remove it so it's not part of formatting
@@ -287,7 +298,7 @@ static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::Ph
   PhoneMetadata phone_metadata;
   phone_util.Format(copied_proto, selected_format, &formatted_phone_number);
 
-  return (full_format && phone_number->has_extension()) ? formatted_phone_number.append(";").append(phone_number->extension()) : formatted_phone_number;
+  return (full_format && phone_number->has_extension()) ? formatted_phone_number.append(extension_prefix.c_str()).append(phone_number->extension()) : formatted_phone_number;
 }
 
 String format_parsed_number_national(Object self) {
@@ -339,9 +350,11 @@ void Init_pico_phone() {
     .define_singleton_method("possible?", &pico_phone_is_possible_for_default_country)
     .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
 
-    rb_define_singleton_method(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), -1);
+    rb_define_module_function(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), 1);
+    rb_define_module_function(rb_mPicoPhone, "default_extension_prefix=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_extension_prefix), 1);
     rb_define_singleton_method(rb_mPicoPhone, "parse", reinterpret_cast<VALUE (*)(...)>(pico_phone_phone_number_parse), -1);
     rb_ivar_set(rb_mPicoPhone, rb_intern("@default_country"), rb_str_new("ZZ", 2));
+    rb_ivar_set(rb_mPicoPhone, rb_intern("@default_extn_prefix"), rb_str_new(";", 1));
 
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber")
     .define_method("possible?", &is_parsed_phone_number_possible)
