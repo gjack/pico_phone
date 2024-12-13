@@ -299,6 +299,8 @@ String format_parsed_number_e164(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
 }
 
+// Returns the extension for the parsed phone number according to the pattern in
+// libphonenumber library https://github.com/google/libphonenumber/blob/424617599369e7adba8a5d1509b910d9ce2e3e44/cpp/src/phonenumbers/phonenumberutil.cc#L220
 String parsed_number_extension(Object self) {
   PhoneNumber *phone_number;
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
