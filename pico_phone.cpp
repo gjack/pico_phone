@@ -291,6 +291,14 @@ String format_parsed_number_national(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL);
 }
 
+String format_parsed_international(Object self) {
+  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::INTERNATIONAL);
+}
+
+String format_parsed_number_e164(Object self) {
+  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -308,7 +316,9 @@ void Init_pico_phone() {
     .define_method("possible?", &is_parsed_phone_number_possible)
     .define_method("valid?", &is_parsed_phone_number_valid)
     .define_method("type", &parsed_phone_type)
-    .define_method("national", &format_parsed_number_national);
+    .define_method("national", &format_parsed_number_national)
+    .define_method("international", &format_parsed_international)
+    .define_method("e164", &format_parsed_number_e164);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
