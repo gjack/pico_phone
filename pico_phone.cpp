@@ -270,6 +270,27 @@ Object parsed_phone_type(Object self) {
   return rb_iv_set(self, "@type", rb_id2sym(type_value));
 }
 
+static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::PhoneNumberFormat selected_format) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  PhoneNumber copied_proto(*phone_number);
+
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  std::string formatted_phone_number;
+
+  // if the phone number has an extension, remove it so it's not part of formatting
+  if (phone_number->has_extension()) {
+    copied_proto.clear_extension();
+  }
+  phone_util.Format(copied_proto, selected_format, &formatted_phone_number);
+
+  return formatted_phone_number;
+}
+
+String format_parsed_number_national(Object self) {
+  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL);
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -286,7 +307,8 @@ void Init_pico_phone() {
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber")
     .define_method("possible?", &is_parsed_phone_number_possible)
     .define_method("valid?", &is_parsed_phone_number_valid)
-    .define_method("type", &parsed_phone_type);
+    .define_method("type", &parsed_phone_type)
+    .define_method("national", &format_parsed_number_national);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
