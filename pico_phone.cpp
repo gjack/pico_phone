@@ -272,28 +272,38 @@ Object parsed_phone_type(Object self) {
 
 static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::PhoneNumberFormat selected_format, bool full_format = false) {
   PhoneNumber *phone_number;
+
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
   PhoneNumber copied_proto(*phone_number);
 
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
   std::string formatted_phone_number;
 
-  // if the phone number has an extension and we're not doing a full_format,
+  // if the phone number has an extension
   // remove it so it's not part of formatting
-  if (phone_number->has_extension() && !full_format) {
+  if (phone_number->has_extension()) {
     copied_proto.clear_extension();
   }
+  PhoneMetadata phone_metadata;
   phone_util.Format(copied_proto, selected_format, &formatted_phone_number);
 
-  return formatted_phone_number;
+  return (full_format && phone_number->has_extension()) ? formatted_phone_number.append(";").append(phone_number->extension()) : formatted_phone_number;
 }
 
 String format_parsed_number_national(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL);
 }
 
+String format_parsed_number_full_national(Object self) {
+  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL, true);
+}
+
 String format_parsed_international(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::INTERNATIONAL);
+}
+
+String format_parsed_full_international(Object self) {
+  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::INTERNATIONAL, true);
 }
 
 String format_parsed_number_e164(Object self) {
@@ -341,7 +351,9 @@ void Init_pico_phone() {
     .define_method("international", &format_parsed_international)
     .define_method("e164", &format_parsed_number_e164)
     .define_method("extension", &parsed_number_extension)
-    .define_method("has_extension?", &parsed_phone_number_has_extension);
+    .define_method("has_extension?", &parsed_phone_number_has_extension)
+    .define_method("full_national", &format_parsed_number_full_national)
+    .define_method("full_international", &format_parsed_full_international);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
