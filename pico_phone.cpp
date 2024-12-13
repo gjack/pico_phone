@@ -299,6 +299,13 @@ String format_parsed_number_e164(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
 }
 
+Object parsed_phone_number_has_extension(Object self) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  return phone_number->has_extension() ? Qtrue : Qfalse;
+}
+
 // Returns the extension for the parsed phone number according to the pattern in
 // libphonenumber library https://github.com/google/libphonenumber/blob/424617599369e7adba8a5d1509b910d9ce2e3e44/cpp/src/phonenumbers/phonenumberutil.cc#L220
 String parsed_number_extension(Object self) {
@@ -332,7 +339,8 @@ void Init_pico_phone() {
     .define_method("national", &format_parsed_number_national)
     .define_method("international", &format_parsed_international)
     .define_method("e164", &format_parsed_number_e164)
-    .define_method("extension", &parsed_number_extension);
+    .define_method("extension", &parsed_number_extension)
+    .define_method("has_extension?", &parsed_phone_number_has_extension);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
