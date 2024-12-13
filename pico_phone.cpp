@@ -270,7 +270,7 @@ Object parsed_phone_type(Object self) {
   return rb_iv_set(self, "@type", rb_id2sym(type_value));
 }
 
-static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::PhoneNumberFormat selected_format) {
+static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::PhoneNumberFormat selected_format, bool full_format = false) {
   PhoneNumber *phone_number;
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
   PhoneNumber copied_proto(*phone_number);
@@ -278,8 +278,9 @@ static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::Ph
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
   std::string formatted_phone_number;
 
-  // if the phone number has an extension, remove it so it's not part of formatting
-  if (phone_number->has_extension()) {
+  // if the phone number has an extension and we're not doing a full_format,
+  // remove it so it's not part of formatting
+  if (phone_number->has_extension() && !full_format) {
     copied_proto.clear_extension();
   }
   phone_util.Format(copied_proto, selected_format, &formatted_phone_number);
