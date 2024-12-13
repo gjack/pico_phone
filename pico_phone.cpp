@@ -321,6 +321,10 @@ String format_parsed_number_e164(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
 }
 
+String format_parsed_number_full_e164(Object self) {
+  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164, true);
+}
+
 Object parsed_phone_number_has_extension(Object self) {
   PhoneNumber *phone_number;
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
@@ -366,7 +370,8 @@ void Init_pico_phone() {
     .define_method("extension", &parsed_number_extension)
     .define_method("has_extension?", &parsed_phone_number_has_extension)
     .define_method("full_national", &format_parsed_number_full_national)
-    .define_method("full_international", &format_parsed_full_international);
+    .define_method("full_international", &format_parsed_full_international)
+    .define_method("full_e164", &format_parsed_number_full_e164);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
