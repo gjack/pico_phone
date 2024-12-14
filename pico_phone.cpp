@@ -136,6 +136,9 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@valid", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@type", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@national", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@international", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@e164", Qnil);
 
   return Qtrue;
 }
@@ -302,7 +305,11 @@ static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::Ph
 }
 
 String format_parsed_number_national(Object self) {
-  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL);
+  if (rb_ivar_defined(self, rb_intern("@national"))) {
+    return rb_iv_get(self, "@national");
+  }
+
+  return rb_iv_set(self, "@national", format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL));
 }
 
 String format_parsed_number_full_national(Object self) {
@@ -310,7 +317,10 @@ String format_parsed_number_full_national(Object self) {
 }
 
 String format_parsed_international(Object self) {
-  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::INTERNATIONAL);
+  if (rb_ivar_defined(self, rb_intern("@international"))) {
+    return rb_iv_get(self, "@international");
+  }
+  return rb_iv_set(self, "@international", format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::INTERNATIONAL));
 }
 
 String format_parsed_full_international(Object self) {
@@ -318,7 +328,10 @@ String format_parsed_full_international(Object self) {
 }
 
 String format_parsed_number_e164(Object self) {
-  return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
+  if (rb_ivar_defined(self, rb_intern("@e164"))) {
+    return rb_iv_get(self, "@e164");
+  }
+  return rb_iv_set(self, "@e164", format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164));
 }
 
 String format_parsed_number_full_e164(Object self) {
