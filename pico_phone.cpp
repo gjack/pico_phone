@@ -298,7 +298,7 @@ static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::Ph
   if (phone_number->has_extension()) {
     copied_proto.clear_extension();
   }
-  PhoneMetadata phone_metadata;
+
   phone_util.Format(copied_proto, selected_format, &formatted_phone_number);
 
   return (full_format && phone_number->has_extension()) ? formatted_phone_number.append(extension_prefix.c_str()).append(phone_number->extension()) : formatted_phone_number;
