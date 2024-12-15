@@ -139,6 +139,7 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@national", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@international", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@e164", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@country_code", Qnil);
 
   return Qtrue;
 }
@@ -358,6 +359,20 @@ String parsed_number_extension(Object self) {
   }
 }
 
+String parsed_number_country_code(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@country_code"))) {
+    return rb_iv_get(self, "@country_code");
+  }
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  int code = phone_number->country_code();
+  std::string result = std::to_string(code);
+
+  return rb_iv_set(self, "@country_code", (String) result);
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -384,7 +399,8 @@ void Init_pico_phone() {
     .define_method("has_extension?", &parsed_phone_number_has_extension)
     .define_method("full_national", &format_parsed_number_full_national)
     .define_method("full_international", &format_parsed_full_international)
-    .define_method("full_e164", &format_parsed_number_full_e164);
+    .define_method("full_e164", &format_parsed_number_full_e164)
+    .define_method("country_code", &parsed_number_country_code);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
