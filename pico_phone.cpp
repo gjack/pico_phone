@@ -67,24 +67,24 @@ String pico_phone_get_default_country(Object self) {
 
 Object is_phone_number_valid(Object self, String str, String cc) {
   std::string phone_number = str.c_str();
-  std::string country_code = cc.c_str();
+  std::string country = cc.c_str();
 
-  if (country_code.empty() || phone_number.empty()) {
+  if (country.empty() || phone_number.empty()) {
     return Qfalse;
   }
 
   PhoneNumber parsed_number;
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
 
-  auto result = phone_util.ParseAndKeepRawInput(phone_number, country_code, &parsed_number);
+  auto result = phone_util.ParseAndKeepRawInput(phone_number, country, &parsed_number);
 
   if (result != PhoneNumberUtil::NO_PARSING_ERROR) {
     return Qfalse;
   }
 
-  if (country_code == "ZZ" && phone_util.IsValidNumber(parsed_number)) {
+  if (country == "ZZ" && phone_util.IsValidNumber(parsed_number)) {
     return Qtrue;
-  } else if (phone_util.IsValidNumberForRegion(parsed_number, country_code)) {
+  } else if (phone_util.IsValidNumberForRegion(parsed_number, country)) {
     return Qtrue;
   } else {
     return Qfalse;
@@ -93,16 +93,16 @@ Object is_phone_number_valid(Object self, String str, String cc) {
 
 Object is_phone_number_possible(Object self, String str, String cc) {
   std::string phone_number = str.c_str();
-  std::string country_code = cc.c_str();
+  std::string country = cc.c_str();
 
-  if (country_code.empty() || phone_number.empty()) {
+  if (country.empty() || phone_number.empty()) {
     return Qnil;
   }
 
   PhoneNumber parsed_number;
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
 
-  auto result = phone_util.Parse(phone_number, country_code, &parsed_number);
+  auto result = phone_util.Parse(phone_number, country, &parsed_number);
 
   if (result == PhoneNumberUtil::NO_PARSING_ERROR && phone_util.IsPossibleNumber(parsed_number)) {
     return Qtrue;
@@ -112,27 +112,27 @@ Object is_phone_number_possible(Object self, String str, String cc) {
 }
 
 Object pico_phone_is_valid_for_default_country(Object self, String phone_number) {
-  String country_code = self.iv_get("@default_country");
-  return is_phone_number_valid(self, phone_number, country_code);
+  String country = self.iv_get("@default_country");
+  return is_phone_number_valid(self, phone_number, country);
 }
 
-Object pico_phone_is_valid_for_country(Object self, String phone_number, String country_code) {
-  return is_phone_number_valid(self, phone_number, country_code);
+Object pico_phone_is_valid_for_country(Object self, String phone_number, String country) {
+  return is_phone_number_valid(self, phone_number, country);
 }
 
 Object pico_phone_is_possible_for_default_country(Object self, String phone_number) {
-  String country_code = self.iv_get("@default_country");
-  return is_phone_number_possible(self, phone_number, country_code);
+  String country = self.iv_get("@default_country");
+  return is_phone_number_possible(self, phone_number, country);
 }
 
-Object pico_phone_is_possible_for_country(Object self, String phone_number, String country_code) {
-  return is_phone_number_possible(self, phone_number, country_code);
+Object pico_phone_is_possible_for_country(Object self, String phone_number, String country) {
+  return is_phone_number_possible(self, phone_number, country);
 }
 
 
 
 VALUE phone_number_nullify_ivars(Object self) {
-  rb_iv_set(rb_cPhoneNumber, "@input_country_code", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@input_country", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@valid", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@type", Qnil);
@@ -145,13 +145,13 @@ VALUE phone_number_nullify_ivars(Object self) {
 
 VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
   VALUE str;
-  VALUE input_country_code;
+  VALUE input_country;
 
-  rb_scan_args(argc, argv, "11", &str, &input_country_code);
-  rb_iv_set(self, "@input_country_code", input_country_code);
+  rb_scan_args(argc, argv, "11", &str, &input_country);
+  rb_iv_set(self, "@input_country", input_country);
 
-  if (RB_NIL_P(input_country_code)) {
-    input_country_code = rb_iv_get(rb_mPicoPhone, "@default_country");
+  if (RB_NIL_P(input_country)) {
+    input_country = rb_iv_get(rb_mPicoPhone, "@default_country");
   }
 
   if (RB_FIXNUM_P(str)) {
@@ -166,11 +166,11 @@ VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
 
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
   std::string phone_number_value(StringValuePtr(str), RSTRING_LEN(str));
-  std::string country_code(StringValuePtr(input_country_code), RSTRING_LEN(input_country_code));
+  std::string country(StringValuePtr(input_country), RSTRING_LEN(input_country));
 
   PhoneNumber parsed_number;
 
-  auto result = phone_util.ParseAndKeepRawInput(phone_number_value, country_code, &parsed_number);
+  auto result = phone_util.ParseAndKeepRawInput(phone_number_value, country, &parsed_number);
 
   if (result != PhoneNumberUtil::NO_PARSING_ERROR) {
     phone_number_nullify_ivars(self);
@@ -204,9 +204,9 @@ Object is_parsed_phone_number_valid(Object self) {
     return rb_iv_get(self, "@valid");
   }
 
-  VALUE input_country_code = rb_iv_get(self, "@input_country_code");
-  if (RB_NIL_P(input_country_code)) {
-    input_country_code = rb_iv_get(rb_mPicoPhone, "@default_country");
+  VALUE input_country = rb_iv_get(self, "@input_country");
+  if (RB_NIL_P(input_country)) {
+    input_country = rb_iv_get(rb_mPicoPhone, "@default_country");
   }
 
   PhoneNumber *phone_number;
@@ -214,9 +214,9 @@ Object is_parsed_phone_number_valid(Object self) {
 
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
 
-  if (!rb_str_equal(input_country_code, rb_str_new_literal("ZZ"))) {
-    std::string country_code(StringValuePtr(input_country_code), RSTRING_LEN(input_country_code));
-    if (phone_util.IsValidNumberForRegion(*phone_number, country_code)) {
+  if (!rb_str_equal(input_country, rb_str_new_literal("ZZ"))) {
+    std::string country(StringValuePtr(input_country), RSTRING_LEN(input_country));
+    if (phone_util.IsValidNumberForRegion(*phone_number, country)) {
       return rb_iv_set(self, "@valid", Qtrue);
     } else {
       return rb_iv_set(self, "@valid", Qfalse);
