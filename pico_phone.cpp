@@ -139,6 +139,7 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@e164", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@country_code", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@country", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@area_code", Qnil);
 
   return Qtrue;
 }
@@ -391,6 +392,28 @@ String parsed_number_country(Object self) {
   }
 }
 
+String parsed_number_area_code(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@area_code"))) {
+    return rb_iv_get(self, "@area_code");
+  }
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  std::string national_significant_number;
+  std::string area_code;
+  int area_code_size = phone_util.GetLengthOfGeographicalAreaCode(*phone_number);
+
+  if (area_code_size > 0) {
+    phone_util.GetNationalSignificantNumber(*phone_number, &national_significant_number);
+    area_code = national_significant_number.substr(0, area_code_size);
+  } else {
+    area_code = "";
+  }
+
+  return rb_iv_set(self, "@area_code", rb_str_new(area_code.c_str(), area_code.size()));
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -419,7 +442,8 @@ void Init_pico_phone() {
     .define_method("full_international", &format_parsed_full_international)
     .define_method("full_e164", &format_parsed_number_full_e164)
     .define_method("country_code", &parsed_number_country_code)
-    .define_method("country", &parsed_number_country);
+    .define_method("country", &parsed_number_country)
+    .define_method("area_code", &parsed_number_area_code);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
