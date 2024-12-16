@@ -356,6 +356,24 @@ String format_parsed_full_international(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::INTERNATIONAL, true);
 }
 
+String format_parsed_number_raw_international(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@raw_international"))) {
+    return rb_iv_get(self, "@raw_international");
+  }
+
+  String formatted;
+
+  if (rb_ivar_defined(self, rb_intern("@e164"))) {
+    formatted = rb_iv_get(self, "@e164");
+  } else {
+    formatted = format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164);
+  }
+
+  std::string formatted_raw = formatted.str().erase(0, 1);
+
+  return rb_iv_set(self, "@raw_international", (String) formatted_raw);
+}
+
 String format_parsed_number_e164(Object self) {
   if (rb_ivar_defined(self, rb_intern("@e164"))) {
     return rb_iv_get(self, "@e164");
@@ -474,7 +492,8 @@ void Init_pico_phone() {
     .define_method("country_code", &parsed_number_country_code)
     .define_method("country", &parsed_number_country)
     .define_method("area_code", &parsed_number_area_code)
-    .define_method("raw_national", &format_parsed_number_raw_national);
+    .define_method("raw_national", &format_parsed_number_raw_national)
+    .define_method("raw_international", &format_parsed_number_raw_international);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
