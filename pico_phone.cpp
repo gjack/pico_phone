@@ -209,6 +209,10 @@ Object is_parsed_phone_number_possible(Object self) {
   }
 }
 
+Object is_parsed_phone_number_impossible(Object self) {
+  return !is_parsed_phone_number_possible(self);
+}
+
 Object is_parsed_phone_number_valid(Object self) {
   if (rb_ivar_defined(self, rb_intern("@valid"))) {
     return rb_iv_get(self, "@valid");
@@ -238,6 +242,10 @@ Object is_parsed_phone_number_valid(Object self) {
   } else {
     return rb_iv_set(self, "@valid", Qfalse);
   }
+}
+
+Object is_parsed_phone_number_invalid(Object self) {
+  return !is_parsed_phone_number_valid(self);
 }
 
 Object parsed_phone_type(Object self) {
@@ -479,7 +487,9 @@ void Init_pico_phone() {
 
   rb_cPhoneNumber = define_class_under(rb_mPicoPhone, "PhoneNumber")
     .define_method("possible?", &is_parsed_phone_number_possible)
+    .define_method("impossible?", &is_parsed_phone_number_impossible)
     .define_method("valid?", &is_parsed_phone_number_valid)
+    .define_method("invalid?", &is_parsed_phone_number_invalid)
     .define_method("type", &parsed_phone_type)
     .define_method("national", &format_parsed_number_national)
     .define_method("international", &format_parsed_international)
