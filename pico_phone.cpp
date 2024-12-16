@@ -129,8 +129,6 @@ Object pico_phone_is_possible_for_country(Object self, String phone_number, Stri
   return is_phone_number_possible(self, phone_number, country);
 }
 
-
-
 VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@input_country", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
@@ -140,6 +138,7 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@international", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@e164", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@country_code", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@country", Qnil);
 
   return Qtrue;
 }
@@ -372,6 +371,26 @@ VALUE parsed_number_country_code(Object self) {
   return rb_iv_set(self, "@country_code", code);
 }
 
+String parsed_number_country(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@country"))) {
+    return rb_iv_get(self, "@country");
+  }
+
+  VALUE input_country = rb_iv_get(self, "@input_country");
+
+  if(RB_NIL_P(input_country)) {
+    PhoneNumber *phone_number;
+    std::string country;
+    TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+    const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+    phone_util.GetRegionCodeForCountryCode(phone_number->country_code(), &country);
+
+    return rb_iv_set(self, "@country", rb_str_new(country.c_str(), country.size()));
+  } else {
+    return rb_iv_set(self, "@country", input_country);
+  }
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -399,7 +418,8 @@ void Init_pico_phone() {
     .define_method("full_national", &format_parsed_number_full_national)
     .define_method("full_international", &format_parsed_full_international)
     .define_method("full_e164", &format_parsed_number_full_e164)
-    .define_method("country_code", &parsed_number_country_code);
+    .define_method("country_code", &parsed_number_country_code)
+    .define_method("country", &parsed_number_country);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
