@@ -359,7 +359,7 @@ String parsed_number_extension(Object self) {
   }
 }
 
-String parsed_number_country_code(Object self) {
+VALUE parsed_number_country_code(Object self) {
   if (rb_ivar_defined(self, rb_intern("@country_code"))) {
     return rb_iv_get(self, "@country_code");
   }
@@ -368,9 +368,8 @@ String parsed_number_country_code(Object self) {
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
 
   int code = phone_number->country_code();
-  std::string result = std::to_string(code);
 
-  return rb_iv_set(self, "@country_code", (String) result);
+  return rb_iv_set(self, "@country_code", code);
 }
 
 extern "C"
