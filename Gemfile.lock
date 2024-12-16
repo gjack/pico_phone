@@ -31,7 +31,7 @@ PLATFORMS
 DEPENDENCIES
   pico_phone!
   rake (~> 13.0)
-  rake-compiler
+  rake-compiler (~> 1.2)
   rspec (~> 3.0)
 
 BUNDLED WITH
