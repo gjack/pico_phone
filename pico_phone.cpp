@@ -8,8 +8,11 @@
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
+using google::protobuf::RepeatedPtrField;
+
 static VALUE rb_cPhoneNumber;
 static VALUE rb_mPicoPhone;
+static RepeatedPtrField<NumberFormat> raw_national_format;
 
 size_t phone_number_size(const void *data) { return sizeof(PhoneNumber); }
 
@@ -43,7 +46,6 @@ VALUE rb_phone_number_alloc(VALUE self) {
 VALUE pico_phone_phone_number_parse(int argc, VALUE *argv, Object self) {
   return rb_class_new_instance(argc, argv, rb_cPhoneNumber);
 }
-
 
 void pico_phone_set_default_country(VALUE self, VALUE str_code) {
   if (RB_NIL_P(str_code)) {
@@ -140,8 +142,15 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(rb_cPhoneNumber, "@country_code", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@country", Qnil);
   rb_iv_set(rb_cPhoneNumber, "@area_code", Qnil);
+  rb_iv_set(rb_cPhoneNumber, "@raw_national", Qnil);
 
   return Qtrue;
+}
+
+static inline void setup_formats() {
+  NumberFormat *raw_fmt = raw_national_format.Add();
+  raw_fmt->set_pattern("(\\d{3})(\\d{3})(\\d{4})");
+  raw_fmt->set_format("$1$2$3");
 }
 
 VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
@@ -317,6 +326,25 @@ String format_parsed_number_full_national(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::NATIONAL, true);
 }
 
+String format_parsed_number_raw_national(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@raw_national"))) {
+    return rb_iv_get(self, "@raw_national");
+  }
+  std::string formatted_number;
+  PhoneNumber *phone_number;
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  PhoneNumber copied_proto(*phone_number);
+
+  if (phone_number->has_extension()) {
+    copied_proto.clear_extension();
+  }
+
+  phone_util.FormatByPattern(copied_proto, PhoneNumberUtil::NATIONAL, raw_national_format, &formatted_number);
+
+  return rb_iv_set(self, "@raw_national", rb_str_new(formatted_number.c_str(), formatted_number.size()));
+}
+
 String format_parsed_international(Object self) {
   if (rb_ivar_defined(self, rb_intern("@international"))) {
     return rb_iv_get(self, "@international");
@@ -416,6 +444,8 @@ String parsed_number_area_code(Object self) {
 
 extern "C"
 void Init_pico_phone() {
+  setup_formats();
+
   rb_mPicoPhone = define_module("PicoPhone")
     .define_singleton_method("default_country", &pico_phone_get_default_country)
     .define_singleton_method("valid?", &pico_phone_is_valid_for_default_country)
@@ -443,7 +473,8 @@ void Init_pico_phone() {
     .define_method("full_e164", &format_parsed_number_full_e164)
     .define_method("country_code", &parsed_number_country_code)
     .define_method("country", &parsed_number_country)
-    .define_method("area_code", &parsed_number_area_code);
+    .define_method("area_code", &parsed_number_area_code)
+    .define_method("raw_national", &format_parsed_number_raw_national);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
