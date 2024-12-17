@@ -306,5 +306,69 @@ RSpec.describe PicoPhone do
         expect(us_no_extn_number.full_e164).to eq("+15102745155")
       end
     end
+
+    describe "#country_code" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+
+      it "returns the correct country code for US" do
+        expect(us_number.country_code).to eq(1)
+      end
+
+      it "returns the correct country code for AU" do
+        expect(aus_number.country_code).to eq(61)
+      end
+
+      it "returns the correct country code for BR" do
+        expect(br_number.country_code).to eq(55)
+      end
+    end
+
+    describe "#country" do
+      context "when a default country is set" do
+        before do
+          PicoPhone.default_country = "US"
+        end
+
+        let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+        let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+        let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+
+        it "returns the correct country for number in US" do
+          expect(us_number.country).to eq("US")
+        end
+
+        it "returns the correct country for number in AU" do
+          expect(aus_number.country).to eq("AU")
+        end
+
+        it "returns the correct country for number in BR" do
+          expect(br_number.country).to eq("BR")
+        end
+      end
+
+      context "when a default country is not set" do
+        before do
+          PicoPhone.default_country = nil
+        end
+
+        let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+        let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+        let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+
+        it "returns the correct country for number in US" do
+          expect(us_number.country).to eq("US")
+        end
+
+        it "returns the correct country for number in AU" do
+          expect(aus_number.country).to eq("AU")
+        end
+
+        it "returns the correct country for number in BR" do
+          expect(br_number.country).to eq("BR")
+        end
+      end
+    end
   end
 end
