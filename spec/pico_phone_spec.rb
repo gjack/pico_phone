@@ -177,5 +177,41 @@ RSpec.describe PicoPhone do
         expect(br_number.e164).to eq("+551155256325")
       end
     end
+
+    describe "#extension" do
+      let(:ext_phone1) { PicoPhone::PhoneNumber.new("5102745656;456", "US") }
+      let(:ext_phone2) { PicoPhone::PhoneNumber.new("5102745656 ext: 456", "US") }
+      let(:ext_phone3) { PicoPhone::PhoneNumber.new("5102745656 ext. 456", "US") }
+      let(:ext_phone4) { PicoPhone::PhoneNumber.new("5102745656x456", "US") }
+
+      it "correctly finds the extension when separator is ;" do
+        expect(ext_phone1.extension).to eq("456")
+      end
+
+      it "correctly finds the extension when separator is ext:" do
+        expect(ext_phone2.extension).to eq("456")
+      end
+
+      it "correctly finds the extension when separator is ext." do
+        expect(ext_phone3.extension).to eq("456")
+      end
+
+      it "correctly finds the extension when separator is x" do
+        expect(ext_phone4.extension).to eq("456")
+      end
+    end
+
+    describe "#has_extension?" do
+      let(:ext_phone) { PicoPhone::PhoneNumber.new("5102745656;456", "US") }
+      let(:no_ext_phone) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+
+      it "returns true if the phone number has an extension" do
+        expect(ext_phone.has_extension?).to be true
+      end
+
+      it "returns false if the phone number doesn't have an extension" do
+        expect(no_ext_phone.has_extension?).to be false
+      end
+    end
   end
 end
