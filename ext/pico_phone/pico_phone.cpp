@@ -210,7 +210,7 @@ Object is_parsed_phone_number_possible(Object self) {
 }
 
 Object is_parsed_phone_number_impossible(Object self) {
-  return !is_parsed_phone_number_possible(self);
+  return (bool) is_parsed_phone_number_possible(self) ? Qfalse : Qtrue;
 }
 
 Object is_parsed_phone_number_valid(Object self) {

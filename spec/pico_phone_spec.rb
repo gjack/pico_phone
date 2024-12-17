@@ -78,6 +78,7 @@ RSpec.describe PicoPhone do
 
     let(:valid_phone_number) { PicoPhone::PhoneNumber.new("5102746767") }
     let(:invalid_phone_number) { PicoPhone::PhoneNumber.new("0435582008") }
+    let(:impossible_number) { PicoPhone::PhoneNumber.new("123456789000") }
 
     describe "#valid?" do
       it "returns true for a valid phone number" do
@@ -96,6 +97,26 @@ RSpec.describe PicoPhone do
 
       it "returns true for an invalid phone number" do
         expect(invalid_phone_number.invalid?).to be true
+      end
+    end
+
+    describe "#possible?" do
+      it "returns true for a number that is a possible number" do
+        expect(valid_phone_number.possible?).to be true
+      end
+
+      it "returns false for a number that is not possible" do
+        expect(impossible_number.possible?).to be false
+      end
+    end
+
+    describe "#impossible?" do
+      it "returns false for a number that is a possible number" do
+        expect(valid_phone_number.impossible?).to be false
+      end
+
+      it "returns true for an impossible number" do
+        expect(impossible_number.impossible?).to be true
       end
     end
   end
