@@ -11,10 +11,22 @@ RSpec.describe PicoPhone do
     expect(PicoPhone.default_country).to eq("US")
   end
 
+  it "sets the default country to ZZ if passed nil" do
+    PicoPhone.default_country = nil
+
+    expect(PicoPhone.default_country).to eq("ZZ")
+  end
+
   it "stores a default extension prefix" do
     PicoPhone.default_extension_prefix = "ext."
 
     expect(PicoPhone.instance_variable_get(:@default_extn_prefix)).to eq("ext.")
+  end
+
+  it "sets a default extension prefix of ; if passed nil" do
+    PicoPhone.default_extension_prefix = nil
+
+    expect(PicoPhone.instance_variable_get(:@default_extn_prefix)).to eq(";")
   end
 
   describe "possible?" do
@@ -22,8 +34,14 @@ RSpec.describe PicoPhone do
       expect(PicoPhone.possible?("Not a number")).to be false
     end
 
-    it "returns true for a string that contains a phone number among other words" do
-      expect(PicoPhone.possible?("This is my phone: 5102745656")).to be true
+    context "when default_country is set" do
+      before do
+        PicoPhone.default_country = "US"
+      end
+
+      it "returns true for a string that contains a possible phone number for the country among other words" do
+        expect(PicoPhone.possible?("This is my phone: 5102745656")).to be true
+      end
     end
   end
 
@@ -211,6 +229,81 @@ RSpec.describe PicoPhone do
 
       it "returns false if the phone number doesn't have an extension" do
         expect(no_ext_phone.has_extension?).to be false
+      end
+    end
+
+    describe "#full_national" do
+      let(:ext_phone) { PicoPhone::PhoneNumber.new("5102745656;456", "US") }
+      let(:no_ext_phone) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+
+      before do
+        PicoPhone.default_extension_prefix = " ext. "
+      end
+
+      context "when the phone number has an extension" do
+        it "returns the phone number formatted as national with the formatted extension appended" do
+          expect(ext_phone.full_national).to eq("(510) 274-5656 ext. 456")
+        end
+      end
+
+      context "when the phone number doesn't have an extension" do
+        it "returns the phone number formatted as national" do
+          expect(no_ext_phone.full_national).to eq("(510) 274-5656")
+        end
+      end
+    end
+
+    describe "#full_international" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155;456", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008;456", "AU") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("1155256325;456", "BR") }
+      let(:us_no_extn_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+
+      before do
+        PicoPhone.default_extension_prefix = " ext. "
+      end
+
+      it "returns the US phone number in international format with the extension appended" do
+        expect(us_number.full_international).to eq("+1 510-274-5155 ext. 456")
+      end
+
+      it "returns the BR phone number in international format with the extension appended" do
+        expect(br_number.full_international).to eq("+55 11 5525-6325 ext. 456")
+      end
+
+      it "returns the AU phone number in international format with the extension appended" do
+        expect(aus_number.full_international).to eq("+61 435 582 008 ext. 456")
+      end
+
+      it "returns the number without extension formatted in international format" do
+        expect(us_no_extn_number.full_international).to eq("+1 510-274-5155")
+      end
+    end
+
+    describe "#full_e164" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155;456", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008;456", "AU") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("1155256325;456", "BR") }
+      let(:us_no_extn_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+
+      before do
+        PicoPhone.default_extension_prefix = " ext. "
+      end
+
+      it "returns the US phone number in e164 format with the extension appended" do
+        expect(us_number.full_e164).to eq("+15102745155 ext. 456")
+      end
+
+      it "returns the AU phone number in e164 format with the extension appended" do
+        expect(aus_number.full_e164).to eq("+61435582008 ext. 456")
+      end
+
+      it "returns the BR phone number in e164 format with the extension appended" do
+        expect(br_number.full_e164).to eq("+551155256325 ext. 456")
+      end
+
+      it "returns the phone number withot extension in e164 format" do
+        expect(us_no_extn_number.full_e164).to eq("+15102745155")
       end
     end
   end
