@@ -159,5 +159,23 @@ RSpec.describe PicoPhone do
         expect(aus_number.international).to eq("+61 435 582 008")
       end
     end
+
+    describe "#e164" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+
+      it "returns the US phone number in e164 format" do
+        expect(us_number.e164).to eq("+15102745155")
+      end
+
+      it "returns the AU phone number in e164 format" do
+        expect(aus_number.e164).to eq("+61435582008")
+      end
+
+      it "returns the BR phone number in e164 format" do
+        expect(br_number.e164).to eq("+551155256325")
+      end
+    end
   end
 end
