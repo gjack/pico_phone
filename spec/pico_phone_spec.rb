@@ -119,5 +119,27 @@ RSpec.describe PicoPhone do
         expect(impossible_number.impossible?).to be true
       end
     end
+
+    describe "#national" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+
+      context "for a number in the US" do
+        it "returns the phone number formatted in national format for the US" do
+          expect(us_number.national).to eq("(510) 274-5155")
+        end
+      end
+
+      context "for a number outside the US" do
+        it "returns the phone number formatted for the specified country (AU)" do
+          expect(aus_number.national).to eq("0435 582 008")
+        end
+
+        it "returns the phone number formatted for the specified country (BR)" do
+          expect(br_number.national).to eq("(11) 5525-6325")
+        end
+      end
+    end
   end
 end
