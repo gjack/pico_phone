@@ -238,14 +238,14 @@ Object is_parsed_phone_number_valid(Object self) {
   }
 
   if (phone_util.IsValidNumber(*phone_number)) {
-    return rb_iv_set(self, "@valid", Qtrue);;
+    return rb_iv_set(self, "@valid", Qtrue);
   } else {
     return rb_iv_set(self, "@valid", Qfalse);
   }
 }
 
 Object is_parsed_phone_number_invalid(Object self) {
-  return !is_parsed_phone_number_valid(self);
+  return (bool) is_parsed_phone_number_valid(self) ? Qfalse : Qtrue;
 }
 
 Object parsed_phone_type(Object self) {

@@ -70,4 +70,33 @@ RSpec.describe PicoPhone do
       expect(PicoPhone.parse("5102743434")).to be_a(PicoPhone::PhoneNumber)
     end
   end
+
+  describe PicoPhone::PhoneNumber do
+    before do
+      PicoPhone.default_country = "US"
+    end
+
+    let(:valid_phone_number) { PicoPhone::PhoneNumber.new("5102746767") }
+    let(:invalid_phone_number) { PicoPhone::PhoneNumber.new("0435582008") }
+
+    describe "#valid?" do
+      it "returns true for a valid phone number" do
+        expect(valid_phone_number.valid?).to be true
+      end
+
+      it "returns false for an invalid phone number" do
+        expect(invalid_phone_number.valid?).to be false
+      end
+    end
+
+    describe "#invalid?" do
+      it "returns false for a valid phone number" do
+        expect(valid_phone_number.invalid?).to be false
+      end
+
+      it "returns true for an invalid phone number" do
+        expect(invalid_phone_number.invalid?).to be true
+      end
+    end
+  end
 end
