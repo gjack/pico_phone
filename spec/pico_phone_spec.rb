@@ -141,5 +141,23 @@ RSpec.describe PicoPhone do
         end
       end
     end
+
+    describe "#international" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+
+      it "returns the US phone number in international format" do
+        expect(us_number.international).to eq("+1 510-274-5155")
+      end
+
+      it "returns the BR phone number in international format" do
+        expect(br_number.international).to eq("+55 11 5525-6325")
+      end
+
+      it "returns the AU phone number in international format" do
+        expect(aus_number.international).to eq("+61 435 582 008")
+      end
+    end
   end
 end
