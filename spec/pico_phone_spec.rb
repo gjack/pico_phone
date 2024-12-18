@@ -142,6 +142,7 @@ RSpec.describe PicoPhone do
       let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
       let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
       let(:br_number) { PicoPhone::PhoneNumber.new("1155256325", "BR") }
+      let(:nanp_number) { PicoPhone::PhoneNumber.new("2892710892", "CA") }
 
       context "for a number in the US" do
         it "returns the phone number formatted in national format for the US" do
@@ -156,6 +157,12 @@ RSpec.describe PicoPhone do
 
         it "returns the phone number formatted for the specified country (BR)" do
           expect(br_number.national).to eq("(11) 5525-6325")
+        end
+      end
+
+      context "for a NANP number (Canada)" do
+        it "returns the phone number formatted in national format" do
+          expect(nanp_number.national).to eq("(289) 271-0892")
         end
       end
     end
@@ -367,6 +374,27 @@ RSpec.describe PicoPhone do
 
         it "returns the correct country for number in BR" do
           expect(br_number.country).to eq("BR")
+        end
+      end
+    end
+
+    describe "#area_code" do
+      before do
+       PicoPhone.default_country = "US"
+      end
+
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+
+      context "when an area code exists for the number" do
+        it "returns the area code for the number" do
+          expect(us_number.area_code).to eq("510")
+        end
+      end
+
+      context "when an area code does not exist for the number" do
+        it "returns an empty string" do
+          expect(aus_number.area_code).to be_empty
         end
       end
     end
