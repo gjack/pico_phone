@@ -1,23 +1,49 @@
 # PicoPhone
 
-TODO: Delete this and the text below, and describe your gem
+This gem was developed as an extension of Google's [libphonenumber C++ library](https://github.com/google/libphonenumber/tree/424617599369e7adba8a5d1509b910d9ce2e3e44/cpp), using a Ruby interface for C++ extensions called [Rice](https://github.com/ruby-rice/rice).
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/pico_phone`. To experiment with that code, run `bin/console` for an interactive prompt.
+You can experiment with the code by running `bin/console` for an interactive prompt.
 
 ## Installation
 
-TODO: Replace `UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG` with your gem name right after releasing it to RubyGems.org. Please do not do it earlier due to security reasons. Alternatively, replace this section with instructions to install your gem from git if you don't plan to release to RubyGems.org.
+You will first need to install `libphonenumber`. 
 
-Install the gem and add to the application's Gemfile by executing:
+In MacOS, you can do this by running
 
-```bash
-bundle add UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+```
+brew install libphonenumber
 ```
 
-If bundler is not being used to manage dependencies, install the gem by executing:
+You can also follow [the instructions in the repo](https://github.com/google/libphonenumber/tree/424617599369e7adba8a5d1509b910d9ce2e3e44/cpp) for other systems or for manual installation.
 
-```bash
-gem install UPDATE_WITH_YOUR_GEM_NAME_IMMEDIATELY_AFTER_RELEASE_TO_RUBYGEMS_ORG
+After cloning the repo, run `bundle install`. 
+
+Notice that the gem has not been published and it's not compiled yet, so you will have to run the following in order to build the gem.
+
+```
+gem build pico_phone.gemspec
+``` 
+
+Once the gem is built, you should be able to install it
+
+```
+% gem install pico_phone-0.0.1.gem
+Building native extensions. This could take a while...
+Successfully installed pico_phone-0.0.1
+Parsing documentation for pico_phone-0.0.1
+Installing ri documentation for pico_phone-0.0.1
+Done installing documentation for pico_phone after 0 seconds
+1 gem installed
+```
+
+And, finally, try it out in IRB
+
+```
+irb(main):001> require "pico_phone"
+=> true
+irb(main):002> PicoPhone::VERSION
+=> "0.0.1"
+irb(main):003>
 ```
 
 ## Usage
