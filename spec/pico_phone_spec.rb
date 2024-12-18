@@ -380,7 +380,7 @@ RSpec.describe PicoPhone do
 
     describe "#area_code" do
       before do
-       PicoPhone.default_country = "US"
+        PicoPhone.default_country = "US"
       end
 
       let(:us_number) { PicoPhone::PhoneNumber.new("5102745155", "US") }
@@ -395,6 +395,40 @@ RSpec.describe PicoPhone do
       context "when an area code does not exist for the number" do
         it "returns an empty string" do
           expect(aus_number.area_code).to be_empty
+        end
+      end
+    end
+
+    describe "#raw_national" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("+15102745155", "US") }
+      let(:br_number) { PicoPhone::PhoneNumber.new("+551155256325", "BR") }
+
+      context "for a number in the US" do
+        it "returns only the digits that would appear when formatted as national" do
+          expect(us_number.raw_national).to eq("5102745155")
+        end
+      end
+
+      context "for a number outside the US" do
+        it "returns only the digits of what would be the number formatted as national for that country" do
+          expect(br_number.raw_national).to eq("1155256325")
+        end
+      end
+    end
+
+    describe "#raw_international" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("+15102745155", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+
+      context "for a number in the US" do
+        it "returns the digits of what would be the number formatted as international" do
+          expect(us_number.raw_international).to eq("15102745155")
+        end
+      end
+
+      context "for a number outside of the US" do
+        it "returns the digits of what would be the number formatted as international" do
+          expect(aus_number.raw_international).to eq("61435582008")
         end
       end
     end
