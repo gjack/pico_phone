@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+system "bundle exec rake compile"
+
 require "bundler/setup"
 require "pico_phone"
 
@@ -9,6 +11,3 @@ require "pico_phone"
 
 require "pry"
 Pry.start
-
-require "irb"
-IRB.start(__FILE__)
