@@ -432,5 +432,48 @@ RSpec.describe PicoPhone do
         end
       end
     end
+
+    describe "#type" do
+      let(:voip_phone) { PicoPhone::PhoneNumber.new("+445631231234", "US") }
+      let(:toll_free_phone) { PicoPhone::PhoneNumber.new("1-800-FLOWERS", "US") }
+      let(:premium_rate_phone) { PicoPhone::PhoneNumber.new("+19004433030", "US") }
+      let(:mobile_number) { PicoPhone::PhoneNumber.new("+12423570000", "US") }
+      let(:fixed_line_phone) { PicoPhone::PhoneNumber.new("+12423651234", "US") }
+      let(:fixed_and_mobile_phone) { PicoPhone::PhoneNumber.new("+16502531111", "US") }
+      let(:personal_number_phone) { PicoPhone::PhoneNumber.new("+447031231234", "US") }
+      let(:unknown_phone) { PicoPhone::PhoneNumber.new("+165025311111", "US") }
+
+      it "returns the correct type for voip" do
+        expect(voip_phone.type).to eq(:voip)
+      end
+
+      it "returns the correct type for toll_free" do
+        expect(toll_free_phone.type).to eq(:toll_free)
+      end
+
+      it "returns the correct type for premium_rate" do
+        expect(premium_rate_phone.type).to eq(:premium_rate)
+      end
+
+      it "returns the correct type for mobile" do
+        expect(mobile_number.type).to eq(:mobile)
+      end
+
+      it "returns the correct type for fixed_line" do
+        expect(fixed_line_phone.type).to eq(:fixed_line)
+      end
+
+      it "returns the correct type for fixed_line_or_mobile" do
+        expect(fixed_and_mobile_phone.type).to eq(:fixed_line_or_mobile)
+      end
+
+      it "returns the correct type for personal" do
+        expect(personal_number_phone.type).to eq(:personal_number)
+      end
+
+      it "returns the correct type for unknown" do
+        expect(unknown_phone.type).to eq(:unknown)
+      end
+    end
   end
 end
