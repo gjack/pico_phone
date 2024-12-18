@@ -48,7 +48,81 @@ irb(main):003>
 
 ## Usage
 
-TODO: Write usage instructions here
+### Checking if a phone number is valid
+
+```
+PicoPhone.valid?("+15102745656")  #true
+PicoPhone.valid_for_country?("(510) 274-5556", "BR")  #false
+
+phone = PicoPhone.parse("(510) 274-5556", "BR")
+phone.valid? #false
+```
+
+### Checking if a phone number is possible
+
+```
+PicoPhone.possible?("+15102745556")  #true
+PicoPhone.possible?("It's my number") #false
+
+phone = PicoPhone.parse("-245")
+phone.possible? #false
+```
+
+### Formatting a phone number
+
+```
+phone = PicoPhone.parse("5102745656", "US")
+
+phone.national            # (510) 274-5656
+phone.international       # +1 510-274-5656
+phone.e164                # +15102745656
+phone.raw_national        # 5102745656
+phone.raw_international   # 15102745656
+
+phone = PicoPhone.parse("0435582008", "AU")
+
+phone.national            # 0435 582 008
+phone.international       # +61 435 582 008
+phone.e164                # +61435582008
+phone.raw_national        # 435582008
+phone.raw_international   # 61435582008
+```
+
+### Country codes and area codes
+
+```
+phone = PicoPhone.parse("5102745656", "US")
+
+phone.country_code     # 1
+phone.area_code        # 510
+
+phone = PicoPhone.parse("0435582008", "AU")
+
+phone.country_code     # 61
+phone.area_code        # empty string because phone doesn't have one
+```
+
+### Extensions
+
+PicoPhone exposes libphonenumber's methods that identify and extract the extension out of a parsed phone number.
+
+```
+phone = PicoPhone.parse("5102745656;456", "US")
+
+phone.has_extension?    # true
+phone.extension         # 456
+```
+
+You can also format a phone number including its extension. The extension prefix can also be customized as needed. If no custom value is indicated, it will default to `;`
+
+```
+PicoPhone.default_extension_prefix = " ext. "
+
+phone = PicoPhone.parse("5102745656;456", "US")
+
+phone.full_national   # (510) 274-5656 ext. 456
+```
+
 
 ## Development
 
