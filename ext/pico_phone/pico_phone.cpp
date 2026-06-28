@@ -5,6 +5,7 @@
 #include <set>
 #include <phonenumbers/phonenumber.pb.h>
 #include <phonenumbers/phonenumberutil.h>
+#include <phonenumbers/shortnumberinfo.h>
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
@@ -182,6 +183,53 @@ String pico_phone_convert_alpha_characters(Object self, String str) {
 Object pico_phone_is_alpha_number(Object self, String str) {
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
   return phone_util.IsAlphaNumber(str.c_str()) ? Qtrue : Qfalse;
+}
+
+static const ShortNumberInfo& GetShortNumberInfo() {
+  static ShortNumberInfo instance;
+  return instance;
+}
+
+Object pico_phone_is_emergency_number(Object self, String number, String region) {
+  return GetShortNumberInfo().IsEmergencyNumber(number.c_str(), region.c_str()) ? Qtrue : Qfalse;
+}
+
+Object pico_phone_is_short_number_valid(Object self, String str, String region) {
+  std::string number_str = str.c_str();
+  std::string region_str = region.c_str();
+
+  PhoneNumber parsed;
+  if (PhoneNumberUtil::GetInstance()->Parse(number_str, region_str, &parsed) != PhoneNumberUtil::NO_PARSING_ERROR) {
+    return Qfalse;
+  }
+  return GetShortNumberInfo().IsValidShortNumberForRegion(parsed, region_str) ? Qtrue : Qfalse;
+}
+
+Object pico_phone_short_number_cost(Object self, String str, String region) {
+  std::string number_str = str.c_str();
+  std::string region_str = region.c_str();
+
+  PhoneNumber parsed;
+  if (PhoneNumberUtil::GetInstance()->Parse(number_str, region_str, &parsed) != PhoneNumberUtil::NO_PARSING_ERROR) {
+    return rb_id2sym(rb_intern("unknown_cost"));
+  }
+
+  VALUE cost;
+  switch (GetShortNumberInfo().GetExpectedCostForRegion(parsed, region_str)) {
+    case ShortNumberInfo::TOLL_FREE:
+      cost = rb_intern("toll_free");
+      break;
+    case ShortNumberInfo::STANDARD_RATE:
+      cost = rb_intern("standard_rate");
+      break;
+    case ShortNumberInfo::PREMIUM_RATE:
+      cost = rb_intern("premium_rate");
+      break;
+    default:
+      cost = rb_intern("unknown_cost");
+      break;
+  }
+  return rb_id2sym(cost);
 }
 
 Array pico_phone_possible_countries_for_string(Object self, String str) {
@@ -698,7 +746,10 @@ void Init_pico_phone() {
     .define_singleton_method("valid_countries", &pico_phone_valid_countries_for_string)
     .define_singleton_method("supported_regions", &pico_phone_supported_regions)
     .define_singleton_method("convert_alpha_characters", &pico_phone_convert_alpha_characters)
-    .define_singleton_method("alpha_number?", &pico_phone_is_alpha_number);
+    .define_singleton_method("alpha_number?", &pico_phone_is_alpha_number)
+    .define_singleton_method("emergency_number?", &pico_phone_is_emergency_number)
+    .define_singleton_method("short_number_valid?", &pico_phone_is_short_number_valid)
+    .define_singleton_method("short_number_cost", &pico_phone_short_number_cost);
 
     rb_define_module_function(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), 1);
     rb_define_module_function(rb_mPicoPhone, "default_extension_prefix=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_extension_prefix), 1);

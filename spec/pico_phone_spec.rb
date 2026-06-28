@@ -137,6 +137,44 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "emergency_number?" do
+    it "returns true for an emergency number in the given region" do
+      expect(PicoPhone.emergency_number?("911", "US")).to be true
+    end
+
+    it "returns true for an emergency number in a non-US region" do
+      expect(PicoPhone.emergency_number?("999", "GB")).to be true
+    end
+
+    it "returns false for a regular phone number" do
+      expect(PicoPhone.emergency_number?("5102745656", "US")).to be false
+    end
+  end
+
+  describe "short_number_valid?" do
+    it "returns true for a valid short number in the given region" do
+      expect(PicoPhone.short_number_valid?("411", "US")).to be true
+    end
+
+    it "returns true for an emergency number" do
+      expect(PicoPhone.short_number_valid?("911", "US")).to be true
+    end
+
+    it "returns false for a string that cannot be parsed" do
+      expect(PicoPhone.short_number_valid?("garbage", "US")).to be false
+    end
+  end
+
+  describe "short_number_cost" do
+    it "returns :toll_free for an emergency number" do
+      expect(PicoPhone.short_number_cost("911", "US")).to eq(:toll_free)
+    end
+
+    it "returns :unknown_cost when the number cannot be parsed" do
+      expect(PicoPhone.short_number_cost("garbage", "US")).to eq(:unknown_cost)
+    end
+  end
+
   describe "supported_regions" do
     it "returns an Array" do
       expect(PicoPhone.supported_regions).to be_an(Array)
