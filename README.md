@@ -68,6 +68,21 @@ phone = PicoPhone.parse("-245")
 phone.possible? #false
 ```
 
+`possible_with_reason` returns a symbol explaining why a number is or is not possible, which is more useful than a boolean when generating validation messages.
+
+```
+phone = PicoPhone.parse("+15102745656", "US")
+phone.possible_with_reason  # :is_possible
+
+phone = PicoPhone.parse("123", "US")
+phone.possible_with_reason  # :too_short
+
+phone = PicoPhone.parse("123456789000", "US")
+phone.possible_with_reason  # :too_long
+```
+
+Possible return values are `:is_possible`, `:is_possible_local_only`, `:too_short`, `:too_long`, `:invalid_country_code`, and `:invalid_length`.
+
 ### Formatting a phone number
 
 ```
@@ -186,6 +201,78 @@ phone = PicoPhone.parse("+15102745656")
 phone.possible_countries  # ["US"]
 phone.valid_countries     # ["US"]
 ```
+
+### Number characteristics
+
+`geographical?` returns true for fixed-line numbers tied to a geographic area code. Mobile, toll-free, and other non-geographic number types return false.
+
+```
+PicoPhone.parse("+15102745656", "US").geographical?   # true  (fixed-line with area code)
+PicoPhone.parse("+61435582008", "AU").geographical?   # false (AU mobile)
+PicoPhone.parse("+18005551234", "US").geographical?   # false (toll-free)
+```
+
+`can_be_internationally_dialled?` returns false for numbers that can only be reached from within their own country.
+
+```
+PicoPhone.parse("+15102745656", "US").can_be_internationally_dialled?  # true
+```
+
+### Vanity numbers
+
+`alpha_number?` identifies vanity number strings before parsing or converting them. `convert_alpha_characters` converts the alpha characters to their dialable digit equivalents.
+
+```
+PicoPhone.alpha_number?("1-800-FLOWERS")           # true
+PicoPhone.alpha_number?("+15102745656")            # false
+
+PicoPhone.convert_alpha_characters("1-800-FLOWERS")  # "1-800-3569377"
+```
+
+Once converted, the result can be passed to `parse` as usual.
+
+```
+PicoPhone.parse(PicoPhone.convert_alpha_characters("1-800-FLOWERS")).type  # :toll_free
+```
+
+### Supported regions
+
+`supported_regions` returns an array of all region codes the library knows about. Useful for populating a country selector or validating a region code before passing it elsewhere.
+
+```
+PicoPhone.supported_regions          # ["AC", "AD", "AE", ...]
+PicoPhone.supported_regions.size     # 245
+PicoPhone.supported_regions.include?("US")  # true
+```
+
+### Short numbers and emergency services
+
+Short numbers (emergency services, short codes, etc.) cannot be parsed as regular phone numbers and require a region to be meaningful. These methods wrap libphonenumber's `ShortNumberInfo` API.
+
+`emergency_number?` checks whether a string exactly matches an emergency service number in the given region.
+
+```
+PicoPhone.emergency_number?("911", "US")   # true
+PicoPhone.emergency_number?("999", "GB")   # true
+PicoPhone.emergency_number?("411", "US")   # false
+```
+
+`short_number_valid?` checks whether a string is a valid short number in the given region.
+
+```
+PicoPhone.short_number_valid?("911", "US")  # true
+PicoPhone.short_number_valid?("411", "US")  # true
+PicoPhone.short_number_valid?("411", "GB")  # false
+```
+
+`short_number_cost` returns the cost category of a short number as a symbol. Emergency numbers are always `:toll_free`. Returns `:unknown_cost` if the number cannot be parsed or has no cost data for the region.
+
+```
+PicoPhone.short_number_cost("911", "US")  # :toll_free
+PicoPhone.short_number_cost("411", "US")  # :unknown_cost
+```
+
+Possible return values are `:toll_free`, `:standard_rate`, `:premium_rate`, and `:unknown_cost`.
 
 ### Extensions
 
