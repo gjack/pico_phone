@@ -543,6 +543,71 @@ RSpec.describe PicoPhone do
       end
     end
 
+    describe "#local_number" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+
+      it "returns the subscriber number after the area code" do
+        expect(us_number.local_number).to eq("2745656")
+      end
+
+      it "returns the full national significant number when there is no geographical area code" do
+        expect(aus_number.local_number).to eq("435582008")
+      end
+    end
+
+    describe "#valid_for_country?" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+
+      it "returns true when the number is valid for the given country" do
+        expect(us_number.valid_for_country?("US")).to be true
+      end
+
+      it "returns false when the number is not valid for the given country" do
+        expect(us_number.valid_for_country?("AU")).to be false
+      end
+    end
+
+    describe "#invalid_for_country?" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+
+      it "returns false when the number is valid for the given country" do
+        expect(us_number.invalid_for_country?("US")).to be false
+      end
+
+      it "returns true when the number is not valid for the given country" do
+        expect(us_number.invalid_for_country?("AU")).to be true
+      end
+    end
+
+    describe "#original" do
+      it "returns the input string as passed to the constructor" do
+        expect(PicoPhone::PhoneNumber.new("5102745656", "US").original).to eq("5102745656")
+      end
+
+      it "returns the original string even when parsing fails" do
+        expect(PicoPhone::PhoneNumber.new("garbage").original).to eq("garbage")
+      end
+
+      it "returns nil when nil was passed as input" do
+        expect(PicoPhone::PhoneNumber.new(nil).original).to be_nil
+      end
+    end
+
+    describe "#to_s" do
+      it "returns the e164 format when the number is valid" do
+        expect(PicoPhone::PhoneNumber.new("5102745656", "US").to_s).to eq("+15102745656")
+      end
+
+      it "returns the original input string when the number is invalid" do
+        expect(PicoPhone::PhoneNumber.new("garbage").to_s).to eq("garbage")
+      end
+
+      it "returns an empty string when nil was passed as input" do
+        expect(PicoPhone::PhoneNumber.new(nil).to_s).to eq("")
+      end
+    end
+
     describe "#possible_countries" do
       it "returns the correct region for an unambiguous calling code" do
         expect(PicoPhone::PhoneNumber.new("+33123456789").possible_countries).to eq(["FR"])

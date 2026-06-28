@@ -88,18 +88,47 @@ phone.raw_national        # 435582008
 phone.raw_international   # 61435582008
 ```
 
-### Country codes and area codes
+### Country codes, area codes, and local number
 
 ```
 phone = PicoPhone.parse("5102745656", "US")
 
 phone.country_code     # 1
-phone.area_code        # 510
+phone.area_code        # "510"
+phone.local_number     # "2745656"
 
 phone = PicoPhone.parse("0435582008", "AU")
 
 phone.country_code     # 61
-phone.area_code        # empty string because phone doesn't have one
+phone.area_code        # "" (AU mobile numbers have no geographical area code)
+phone.local_number     # "435582008" (full national number when there is no area code)
+```
+
+### Checking validity for a specific country on a parsed number
+
+The module-level `valid_for_country?` accepts a raw string. The same check is also available as an instance method once a number has been parsed.
+
+```
+phone = PicoPhone.parse("+15102745656")
+
+phone.valid_for_country?("US")    # true
+phone.valid_for_country?("AU")    # false
+phone.invalid_for_country?("US")  # false
+phone.invalid_for_country?("AU")  # true
+```
+
+### Original input and string conversion
+
+`original` returns the input exactly as it was passed to `parse`, regardless of whether parsing succeeded. `to_s` returns the e164 format for a valid number, and falls back to the original input for an invalid one.
+
+```
+phone = PicoPhone.parse("5102745656", "US")
+phone.original   # "5102745656"
+phone.to_s       # "+15102745656"
+
+phone = PicoPhone.parse("not a number")
+phone.original   # "not a number"
+phone.to_s       # "not a number"
 ```
 
 ### Finding possible or valid countries for a phone number

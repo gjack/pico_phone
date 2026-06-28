@@ -196,6 +196,7 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(self, "@country_code", Qnil);
   rb_iv_set(self, "@country", Qnil);
   rb_iv_set(self, "@area_code", Qnil);
+  rb_iv_set(self, "@local_number", Qnil);
   rb_iv_set(self, "@raw_national", Qnil);
 
   return Qtrue;
@@ -207,6 +208,7 @@ VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
 
   rb_scan_args(argc, argv, "11", &str, &input_country);
   rb_iv_set(self, "@input_country", input_country);
+  rb_iv_set(self, "@original", str);
 
   if (RB_NIL_P(input_country)) {
     input_country = rb_iv_get(rb_mPicoPhone, "@default_country");
@@ -512,6 +514,49 @@ String parsed_number_area_code(Object self) {
   return rb_iv_set(self, "@area_code", rb_str_new(area_code.c_str(), area_code.size()));
 }
 
+String parsed_number_local_number(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@local_number"))) {
+    return rb_iv_get(self, "@local_number");
+  }
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  std::string national_significant_number;
+  phone_util.GetNationalSignificantNumber(*phone_number, &national_significant_number);
+
+  int area_code_length = phone_util.GetLengthOfGeographicalAreaCode(*phone_number);
+  std::string local = area_code_length > 0
+    ? national_significant_number.substr(area_code_length)
+    : national_significant_number;
+
+  return rb_iv_set(self, "@local_number", rb_str_new(local.c_str(), local.size()));
+}
+
+Object parsed_number_valid_for_country(Object self, String country) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  return phone_util.IsValidNumberForRegion(*phone_number, country.c_str()) ? Qtrue : Qfalse;
+}
+
+Object parsed_number_invalid_for_country(Object self, String country) {
+  return RTEST(parsed_number_valid_for_country(self, country)) ? Qfalse : Qtrue;
+}
+
+Object parsed_number_original(Object self) {
+  return rb_iv_get(self, "@original");
+}
+
+Object parsed_number_to_s(Object self) {
+  if (RTEST(is_parsed_phone_number_valid(self))) {
+    return format_parsed_number_e164(self);
+  }
+  VALUE original = rb_iv_get(self, "@original");
+  return RB_NIL_P(original) ? Object(rb_str_new("", 0)) : Object(original);
+}
+
 Array parsed_number_possible_countries(Object self) {
   PhoneNumber *phone_number;
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
@@ -558,6 +603,11 @@ void Init_pico_phone() {
     .define_method("country_code", &parsed_number_country_code)
     .define_method("country", &parsed_number_country)
     .define_method("area_code", &parsed_number_area_code)
+    .define_method("local_number", &parsed_number_local_number)
+    .define_method("valid_for_country?", &parsed_number_valid_for_country)
+    .define_method("invalid_for_country?", &parsed_number_invalid_for_country)
+    .define_method("original", &parsed_number_original)
+    .define_method("to_s", &parsed_number_to_s)
     .define_method("raw_national", &format_parsed_number_raw_national)
     .define_method("raw_international", &format_parsed_number_raw_international)
     .define_method("possible_countries", &parsed_number_possible_countries)
