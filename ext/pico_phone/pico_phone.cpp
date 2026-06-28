@@ -1,18 +1,14 @@
 #include <rice/rice.hpp>
 #include <rice/stl.hpp>
 #include <string.h>
-#include <iostream>
-#include <phonenumbers/phonemetadata.pb.h>
 #include <phonenumbers/phonenumber.pb.h>
 #include <phonenumbers/phonenumberutil.h>
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
-using google::protobuf::RepeatedPtrField;
 
 static VALUE rb_cPhoneNumber;
 static VALUE rb_mPicoPhone;
-static RepeatedPtrField<NumberFormat> raw_national_format;
 
 size_t phone_number_size(const void *data) { return sizeof(PhoneNumber); }
 
@@ -132,25 +128,19 @@ Object pico_phone_is_possible_for_country(Object self, String phone_number, Stri
 }
 
 VALUE phone_number_nullify_ivars(Object self) {
-  rb_iv_set(rb_cPhoneNumber, "@input_country", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@possible", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@valid", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@type", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@national", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@international", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@e164", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@country_code", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@country", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@area_code", Qnil);
-  rb_iv_set(rb_cPhoneNumber, "@raw_national", Qnil);
+  rb_iv_set(self, "@input_country", Qnil);
+  rb_iv_set(self, "@possible", Qfalse);
+  rb_iv_set(self, "@valid", Qfalse);
+  rb_iv_set(self, "@type", Qnil);
+  rb_iv_set(self, "@national", Qnil);
+  rb_iv_set(self, "@international", Qnil);
+  rb_iv_set(self, "@e164", Qnil);
+  rb_iv_set(self, "@country_code", Qnil);
+  rb_iv_set(self, "@country", Qnil);
+  rb_iv_set(self, "@area_code", Qnil);
+  rb_iv_set(self, "@raw_national", Qnil);
 
   return Qtrue;
-}
-
-static inline void setup_formats() {
-  NumberFormat *raw_fmt = raw_national_format.Add();
-  raw_fmt->set_pattern("(\\d{3})(\\d{3})(\\d{4})");
-  raw_fmt->set_format("$1$2$3");
 }
 
 VALUE phone_number_initialize(int argc, VALUE *argv, VALUE self) {
@@ -338,19 +328,15 @@ String format_parsed_number_raw_national(Object self) {
   if (rb_ivar_defined(self, rb_intern("@raw_national"))) {
     return rb_iv_get(self, "@raw_national");
   }
-  std::string formatted_number;
+
   PhoneNumber *phone_number;
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
-  PhoneNumber copied_proto(*phone_number);
 
-  if (phone_number->has_extension()) {
-    copied_proto.clear_extension();
-  }
+  std::string national_number;
+  phone_util.GetNationalSignificantNumber(*phone_number, &national_number);
 
-  phone_util.FormatByPattern(copied_proto, PhoneNumberUtil::NATIONAL, raw_national_format, &formatted_number);
-
-  return rb_iv_set(self, "@raw_national", rb_str_new(formatted_number.c_str(), formatted_number.size()));
+  return rb_iv_set(self, "@raw_national", rb_str_new(national_number.c_str(), national_number.size()));
 }
 
 String format_parsed_international(Object self) {
@@ -413,7 +399,7 @@ String parsed_number_extension(Object self) {
   }
 }
 
-VALUE parsed_number_country_code(Object self) {
+Object parsed_number_country_code(Object self) {
   if (rb_ivar_defined(self, rb_intern("@country_code"))) {
     return rb_iv_get(self, "@country_code");
   }
@@ -423,7 +409,7 @@ VALUE parsed_number_country_code(Object self) {
 
   int code = phone_number->country_code();
 
-  return rb_iv_set(self, "@country_code", code);
+  return rb_iv_set(self, "@country_code", INT2FIX(code));
 }
 
 String parsed_number_country(Object self) {
@@ -470,8 +456,6 @@ String parsed_number_area_code(Object self) {
 
 extern "C"
 void Init_pico_phone() {
-  setup_formats();
-
   rb_mPicoPhone = define_module("PicoPhone")
     .define_singleton_method("default_country", &pico_phone_get_default_country)
     .define_singleton_method("valid?", &pico_phone_is_valid_for_default_country)

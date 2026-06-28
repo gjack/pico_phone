@@ -330,6 +330,11 @@ RSpec.describe PicoPhone do
       it "returns the correct country code for BR" do
         expect(br_number.country_code).to eq(55)
       end
+
+      it "stores the country code correctly as a Ruby integer" do
+        us_number.country_code
+        expect(us_number.instance_variable_get(:@country_code)).to eq(1)
+      end
     end
 
     describe "#country" do
@@ -402,6 +407,8 @@ RSpec.describe PicoPhone do
     describe "#raw_national" do
       let(:us_number) { PicoPhone::PhoneNumber.new("+15102745155", "US") }
       let(:br_number) { PicoPhone::PhoneNumber.new("+551155256325", "BR") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("+61435582008", "AU") }
+      let(:fr_number)  { PicoPhone::PhoneNumber.new("+33123456789", "FR") }
 
       context "for a number in the US" do
         it "returns only the digits that would appear when formatted as national" do
@@ -412,6 +419,18 @@ RSpec.describe PicoPhone do
       context "for a number outside the US" do
         it "returns only the digits of what would be the number formatted as national for that country" do
           expect(br_number.raw_national).to eq("1155256325")
+        end
+      end
+
+      context "for a non-10-digit national number (AU mobile, 9 digits)" do
+        it "returns all 9 digits without truncation or padding" do
+          expect(aus_number.raw_national).to eq("435582008")
+        end
+      end
+
+      context "for a non-10-digit national number (FR landline, 9 digits)" do
+        it "returns all 9 digits without truncation or padding" do
+          expect(fr_number.raw_national).to eq("123456789")
         end
       end
     end
@@ -473,6 +492,53 @@ RSpec.describe PicoPhone do
 
       it "returns the correct type for unknown" do
         expect(unknown_phone.type).to eq(:unknown)
+      end
+    end
+
+    describe "with invalid input" do
+      before { PicoPhone.default_country = "US" }
+
+      context "when initialized with nil" do
+        let(:phone) { PicoPhone::PhoneNumber.new(nil) }
+
+        it "returns false for possible?" do
+          expect(phone.possible?).to be false
+        end
+
+        it "returns false for valid?" do
+          expect(phone.valid?).to be false
+        end
+
+        it "does not set instance variables on the PhoneNumber class" do
+          phone # force initialization
+          expect(PicoPhone::PhoneNumber.instance_variable_defined?(:@possible)).to be false
+          expect(PicoPhone::PhoneNumber.instance_variable_defined?(:@valid)).to be false
+        end
+      end
+
+      context "when initialized with a string that cannot be parsed" do
+        let(:phone) { PicoPhone::PhoneNumber.new("not a phone number") }
+
+        it "returns false for possible?" do
+          expect(phone.possible?).to be false
+        end
+
+        it "returns false for valid?" do
+          expect(phone.valid?).to be false
+        end
+
+        it "does not set instance variables on the PhoneNumber class" do
+          phone # force initialization
+          expect(PicoPhone::PhoneNumber.instance_variable_defined?(:@possible)).to be false
+          expect(PicoPhone::PhoneNumber.instance_variable_defined?(:@valid)).to be false
+        end
+
+        it "does not affect subsequently created valid numbers" do
+          phone # trigger failed parse
+          valid = PicoPhone::PhoneNumber.new("5102745155", "US")
+          expect(valid.possible?).to be true
+          expect(valid.valid?).to be true
+        end
       end
     end
   end
