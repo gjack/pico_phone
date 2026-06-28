@@ -137,6 +137,49 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "supported_types_for_region" do
+    it "returns an array of symbols" do
+      expect(PicoPhone.supported_types_for_region("US")).to all(be_a(Symbol))
+    end
+
+    it "includes expected types for the US" do
+      expect(PicoPhone.supported_types_for_region("US")).to include(:mobile, :toll_free, :fixed_line)
+    end
+
+    it "returns different types for different regions" do
+      expect(PicoPhone.supported_types_for_region("AU")).to include(:voip, :pager)
+      expect(PicoPhone.supported_types_for_region("US")).not_to include(:voip)
+    end
+  end
+
+  describe "example_number" do
+    it "returns a PhoneNumber instance" do
+      expect(PicoPhone.example_number("AU")).to be_a(PicoPhone::PhoneNumber)
+    end
+
+    it "returns a valid number for the region" do
+      expect(PicoPhone.example_number("AU").valid_for_country?("AU")).to be true
+    end
+
+    it "returns a different number for a different region" do
+      expect(PicoPhone.example_number("US").e164).not_to eq(PicoPhone.example_number("AU").e164)
+    end
+  end
+
+  describe "example_number_for_type" do
+    it "returns a PhoneNumber instance" do
+      expect(PicoPhone.example_number_for_type("US", :toll_free)).to be_a(PicoPhone::PhoneNumber)
+    end
+
+    it "returns a number of the requested type" do
+      expect(PicoPhone.example_number_for_type("US", :toll_free).type).to eq(:toll_free)
+    end
+
+    it "returns a number valid for the given region" do
+      expect(PicoPhone.example_number_for_type("AU", :fixed_line).valid_for_country?("AU")).to be true
+    end
+  end
+
   describe "emergency_number?" do
     it "returns true for an emergency number in the given region" do
       expect(PicoPhone.emergency_number?("911", "US")).to be true
@@ -781,6 +824,16 @@ RSpec.describe PicoPhone do
 
       it "returns false for a toll-free number" do
         expect(PicoPhone::PhoneNumber.new("+18005551234", "US").geographical?).to be false
+      end
+    end
+
+    describe "#possible_for_type?" do
+      it "returns true when the number length is consistent with the given type" do
+        expect(PicoPhone::PhoneNumber.new("+15102745656", "US").possible_for_type?(:fixed_line_or_mobile)).to be true
+      end
+
+      it "returns true for an AU mobile number checked against :mobile" do
+        expect(PicoPhone::PhoneNumber.new("+61435582008", "AU").possible_for_type?(:mobile)).to be true
       end
     end
 

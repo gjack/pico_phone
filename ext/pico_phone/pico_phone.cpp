@@ -423,6 +423,39 @@ Object is_parsed_phone_number_invalid(Object self) {
   return (bool) is_parsed_phone_number_valid(self) ? Qfalse : Qtrue;
 }
 
+static VALUE phone_number_type_to_symbol(PhoneNumberUtil::PhoneNumberType type) {
+  switch (type) {
+    case PhoneNumberUtil::FIXED_LINE:          return rb_id2sym(rb_intern("fixed_line"));
+    case PhoneNumberUtil::MOBILE:              return rb_id2sym(rb_intern("mobile"));
+    case PhoneNumberUtil::FIXED_LINE_OR_MOBILE:return rb_id2sym(rb_intern("fixed_line_or_mobile"));
+    case PhoneNumberUtil::TOLL_FREE:           return rb_id2sym(rb_intern("toll_free"));
+    case PhoneNumberUtil::PREMIUM_RATE:        return rb_id2sym(rb_intern("premium_rate"));
+    case PhoneNumberUtil::SHARED_COST:         return rb_id2sym(rb_intern("shared_cost"));
+    case PhoneNumberUtil::VOIP:                return rb_id2sym(rb_intern("voip"));
+    case PhoneNumberUtil::PERSONAL_NUMBER:     return rb_id2sym(rb_intern("personal_number"));
+    case PhoneNumberUtil::PAGER:               return rb_id2sym(rb_intern("pager"));
+    case PhoneNumberUtil::UAN:                 return rb_id2sym(rb_intern("uan"));
+    case PhoneNumberUtil::VOICEMAIL:           return rb_id2sym(rb_intern("voicemail"));
+    default:                                   return rb_id2sym(rb_intern("unknown"));
+  }
+}
+
+static PhoneNumberUtil::PhoneNumberType symbol_to_phone_number_type(VALUE sym) {
+  ID id = rb_to_id(sym);
+  if (id == rb_intern("fixed_line"))           return PhoneNumberUtil::FIXED_LINE;
+  if (id == rb_intern("mobile"))               return PhoneNumberUtil::MOBILE;
+  if (id == rb_intern("fixed_line_or_mobile")) return PhoneNumberUtil::FIXED_LINE_OR_MOBILE;
+  if (id == rb_intern("toll_free"))            return PhoneNumberUtil::TOLL_FREE;
+  if (id == rb_intern("premium_rate"))         return PhoneNumberUtil::PREMIUM_RATE;
+  if (id == rb_intern("shared_cost"))          return PhoneNumberUtil::SHARED_COST;
+  if (id == rb_intern("voip"))                 return PhoneNumberUtil::VOIP;
+  if (id == rb_intern("personal_number"))      return PhoneNumberUtil::PERSONAL_NUMBER;
+  if (id == rb_intern("pager"))                return PhoneNumberUtil::PAGER;
+  if (id == rb_intern("uan"))                  return PhoneNumberUtil::UAN;
+  if (id == rb_intern("voicemail"))            return PhoneNumberUtil::VOICEMAIL;
+  return PhoneNumberUtil::UNKNOWN;
+}
+
 Object parsed_phone_type(Object self) {
   if (rb_ivar_defined(self, rb_intern("@type"))) {
     return rb_iv_get(self, "@type");
@@ -432,48 +465,7 @@ Object parsed_phone_type(Object self) {
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
 
   const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
-
-  VALUE type_value;
-  switch (phone_util.GetNumberType(*phone_number))
-  {
-    case PhoneNumberUtil::FIXED_LINE:
-      type_value = rb_intern("fixed_line");
-      break;
-    case PhoneNumberUtil::MOBILE:
-      type_value = rb_intern("mobile");
-      break;
-    case PhoneNumberUtil::FIXED_LINE_OR_MOBILE:
-      type_value = rb_intern("fixed_line_or_mobile");
-      break;
-    case PhoneNumberUtil::TOLL_FREE:
-      type_value = rb_intern("toll_free");
-      break;
-    case PhoneNumberUtil::PREMIUM_RATE:
-      type_value = rb_intern("premium_rate");
-      break;
-    case PhoneNumberUtil::SHARED_COST:
-      type_value = rb_intern("shared_cost");
-      break;
-    case PhoneNumberUtil::VOIP:
-      type_value = rb_intern("voip");
-      break;
-    case PhoneNumberUtil::PERSONAL_NUMBER:
-      type_value = rb_intern("personal_number");
-      break;
-    case PhoneNumberUtil::PAGER:
-      type_value = rb_intern("pager");
-      break;
-    case PhoneNumberUtil::UAN:
-      type_value = rb_intern("uan");
-      break;
-    case PhoneNumberUtil::VOICEMAIL:
-      type_value = rb_intern("voicemail");
-      break;
-    default:
-      type_value = rb_intern("unknown");
-      break;
-  }
-  return rb_iv_set(self, "@type", rb_id2sym(type_value));
+  return rb_iv_set(self, "@type", phone_number_type_to_symbol(phone_util.GetNumberType(*phone_number)));
 }
 
 static inline String format_parsed_phone_number(Object self, PhoneNumberUtil::PhoneNumberFormat selected_format, bool full_format = false) {
@@ -734,6 +726,49 @@ Array parsed_number_valid_countries(Object self) {
   return regions_for_number(*phone_number, true);
 }
 
+Array pico_phone_supported_types_for_region(Object self, String region) {
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  std::set<PhoneNumberUtil::PhoneNumberType> types;
+  phone_util.GetSupportedTypesForRegion(region.c_str(), &types);
+
+  Array result;
+  for (const auto& type : types) {
+    result.push(Object(phone_number_type_to_symbol(type)));
+  }
+  return result;
+}
+
+Object pico_phone_example_number(Object self, String region) {
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  PhoneNumber example;
+  if (!phone_util.GetExampleNumber(region.c_str(), &example)) return Qnil;
+
+  std::string formatted;
+  phone_util.Format(example, PhoneNumberUtil::E164, &formatted);
+  VALUE args[1] = { rb_str_new(formatted.c_str(), formatted.size()) };
+  return rb_class_new_instance(1, args, rb_cPhoneNumber);
+}
+
+Object pico_phone_example_number_for_type(Object self, String region, Object type_sym) {
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  PhoneNumber example;
+  PhoneNumberUtil::PhoneNumberType type = symbol_to_phone_number_type(type_sym);
+  if (!phone_util.GetExampleNumberForType(region.c_str(), type, &example)) return Qnil;
+
+  std::string formatted;
+  phone_util.Format(example, PhoneNumberUtil::E164, &formatted);
+  VALUE args[1] = { rb_str_new(formatted.c_str(), formatted.size()) };
+  return rb_class_new_instance(1, args, rb_cPhoneNumber);
+}
+
+Object parsed_number_possible_for_type(Object self, Object type_sym) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  PhoneNumberUtil::PhoneNumberType type = symbol_to_phone_number_type(type_sym);
+  return phone_util.IsPossibleNumberForType(*phone_number, type) ? Qtrue : Qfalse;
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -749,7 +784,10 @@ void Init_pico_phone() {
     .define_singleton_method("alpha_number?", &pico_phone_is_alpha_number)
     .define_singleton_method("emergency_number?", &pico_phone_is_emergency_number)
     .define_singleton_method("short_number_valid?", &pico_phone_is_short_number_valid)
-    .define_singleton_method("short_number_cost", &pico_phone_short_number_cost);
+    .define_singleton_method("short_number_cost", &pico_phone_short_number_cost)
+    .define_singleton_method("supported_types_for_region", &pico_phone_supported_types_for_region)
+    .define_singleton_method("example_number", &pico_phone_example_number)
+    .define_singleton_method("example_number_for_type", &pico_phone_example_number_for_type);
 
     rb_define_module_function(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), 1);
     rb_define_module_function(rb_mPicoPhone, "default_extension_prefix=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_extension_prefix), 1);
@@ -788,7 +826,8 @@ void Init_pico_phone() {
     .define_method("valid_countries", &parsed_number_valid_countries)
     .define_method("possible_with_reason", &parsed_number_possible_with_reason)
     .define_method("geographical?", &parsed_number_geographical)
-    .define_method("can_be_internationally_dialled?", &parsed_number_can_be_internationally_dialled);
+    .define_method("can_be_internationally_dialled?", &parsed_number_can_be_internationally_dialled)
+    .define_method("possible_for_type?", &parsed_number_possible_for_type);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
