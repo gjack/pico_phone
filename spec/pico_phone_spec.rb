@@ -89,6 +89,54 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "possible_countries" do
+    it "returns the single matching region for an unambiguous calling code" do
+      expect(PicoPhone.possible_countries("+33123456789")).to eq(["FR"])
+    end
+
+    it "returns the correct region for an unambiguous calling code when only the length is right (not the pattern)" do
+      expect(PicoPhone.possible_countries("+33000000000")).to eq(["FR"])
+    end
+
+    it "disambiguates NANP numbers to the correct country" do
+      expect(PicoPhone.possible_countries("+15102745656")).to eq(["US"])
+    end
+
+    it "resolves a Bahamas NANP number correctly" do
+      expect(PicoPhone.possible_countries("+12423570000")).to eq(["BS"])
+    end
+
+    it "returns all matching regions for an ambiguous calling code" do
+      expect(PicoPhone.possible_countries("+78005553535")).to match_array(["RU", "KZ"])
+    end
+
+    it "returns an empty array for garbage input" do
+      expect(PicoPhone.possible_countries("garbage")).to eq([])
+    end
+
+    it "returns an empty array for an empty string" do
+      expect(PicoPhone.possible_countries("")).to eq([])
+    end
+  end
+
+  describe "valid_countries" do
+    it "returns the correct region for a valid number" do
+      expect(PicoPhone.valid_countries("+33123456789")).to eq(["FR"])
+    end
+
+    it "returns an empty array when the number is right length but fails pattern validation" do
+      expect(PicoPhone.valid_countries("+33000000000")).to eq([])
+    end
+
+    it "disambiguates NANP numbers to the correct country" do
+      expect(PicoPhone.valid_countries("+15102745656")).to eq(["US"])
+    end
+
+    it "returns an empty array for garbage input" do
+      expect(PicoPhone.valid_countries("garbage")).to eq([])
+    end
+  end
+
   describe PicoPhone::PhoneNumber do
     before do
       PicoPhone.default_country = "US"
@@ -492,6 +540,38 @@ RSpec.describe PicoPhone do
 
       it "returns the correct type for unknown" do
         expect(unknown_phone.type).to eq(:unknown)
+      end
+    end
+
+    describe "#possible_countries" do
+      it "returns the correct region for an unambiguous calling code" do
+        expect(PicoPhone::PhoneNumber.new("+33123456789").possible_countries).to eq(["FR"])
+      end
+
+      it "returns the region when the number is right length but fails pattern validation" do
+        expect(PicoPhone::PhoneNumber.new("+33000000000").possible_countries).to eq(["FR"])
+      end
+
+      it "disambiguates NANP numbers to the correct country" do
+        expect(PicoPhone::PhoneNumber.new("+15102745656").possible_countries).to eq(["US"])
+      end
+
+      it "returns all matching regions for an ambiguous calling code" do
+        expect(PicoPhone::PhoneNumber.new("+78005553535").possible_countries).to match_array(["RU", "KZ"])
+      end
+    end
+
+    describe "#valid_countries" do
+      it "returns the correct region for a valid number" do
+        expect(PicoPhone::PhoneNumber.new("+33123456789").valid_countries).to eq(["FR"])
+      end
+
+      it "returns an empty array when the number is right length but fails pattern validation" do
+        expect(PicoPhone::PhoneNumber.new("+33000000000").valid_countries).to eq([])
+      end
+
+      it "disambiguates NANP numbers to the correct country" do
+        expect(PicoPhone::PhoneNumber.new("+15102745656").valid_countries).to eq(["US"])
       end
     end
 

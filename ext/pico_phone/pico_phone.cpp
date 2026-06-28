@@ -1,6 +1,7 @@
 #include <rice/rice.hpp>
 #include <rice/stl.hpp>
 #include <string.h>
+#include <list>
 #include <phonenumbers/phonenumber.pb.h>
 #include <phonenumbers/phonenumberutil.h>
 
@@ -125,6 +126,63 @@ Object pico_phone_is_possible_for_default_country(Object self, String phone_numb
 
 Object pico_phone_is_possible_for_country(Object self, String phone_number, String country) {
   return is_phone_number_possible(self, phone_number, country);
+}
+
+static Array regions_for_number(const PhoneNumber& number, bool strict) {
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  std::list<std::string> regions;
+  phone_util.GetRegionCodesForCountryCallingCode(number.country_code(), &regions);
+
+  Array result;
+
+  // For the lenient (possible) check with a single region there is nothing to
+  // disambiguate, so a length-only check is sufficient and preferable: it lets
+  // possible_countries return the region for numbers that are the right length
+  // but fail strict pattern validation (e.g. a digit transposition in a French
+  // number still belongs to France). For ambiguous calling codes (+1, +7, +44,
+  // …) we must use IsValidNumberForRegion to distinguish between the candidate
+  // regions regardless of strictness, since IsPossibleNumber has no concept of
+  // region and would accept every candidate region equally.
+  if (!strict && regions.size() == 1) {
+    if (phone_util.IsPossibleNumber(number)) {
+      const auto& region = regions.front();
+      result.push(Object(rb_str_new(region.c_str(), region.size())));
+    }
+    return result;
+  }
+
+  for (const auto& region : regions) {
+    if (phone_util.IsValidNumberForRegion(number, region)) {
+      result.push(Object(rb_str_new(region.c_str(), region.size())));
+    }
+  }
+  return result;
+}
+
+Array pico_phone_possible_countries_for_string(Object self, String str) {
+  std::string phone_number_str = str.c_str();
+  if (phone_number_str.empty()) return Array();
+
+  PhoneNumber parsed_number;
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  auto parse_result = phone_util.Parse(phone_number_str, "ZZ", &parsed_number);
+  if (parse_result != PhoneNumberUtil::NO_PARSING_ERROR) return Array();
+
+  return regions_for_number(parsed_number, false);
+}
+
+Array pico_phone_valid_countries_for_string(Object self, String str) {
+  std::string phone_number_str = str.c_str();
+  if (phone_number_str.empty()) return Array();
+
+  PhoneNumber parsed_number;
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  auto parse_result = phone_util.Parse(phone_number_str, "ZZ", &parsed_number);
+  if (parse_result != PhoneNumberUtil::NO_PARSING_ERROR) return Array();
+
+  return regions_for_number(parsed_number, true);
 }
 
 VALUE phone_number_nullify_ivars(Object self) {
@@ -454,6 +512,18 @@ String parsed_number_area_code(Object self) {
   return rb_iv_set(self, "@area_code", rb_str_new(area_code.c_str(), area_code.size()));
 }
 
+Array parsed_number_possible_countries(Object self) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  return regions_for_number(*phone_number, false);
+}
+
+Array parsed_number_valid_countries(Object self) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  return regions_for_number(*phone_number, true);
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -461,7 +531,9 @@ void Init_pico_phone() {
     .define_singleton_method("valid?", &pico_phone_is_valid_for_default_country)
     .define_singleton_method("valid_for_country?", &pico_phone_is_valid_for_country)
     .define_singleton_method("possible?", &pico_phone_is_possible_for_default_country)
-    .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country);
+    .define_singleton_method("possible_for_country?", &pico_phone_is_possible_for_country)
+    .define_singleton_method("possible_countries", &pico_phone_possible_countries_for_string)
+    .define_singleton_method("valid_countries", &pico_phone_valid_countries_for_string);
 
     rb_define_module_function(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), 1);
     rb_define_module_function(rb_mPicoPhone, "default_extension_prefix=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_extension_prefix), 1);
@@ -487,7 +559,9 @@ void Init_pico_phone() {
     .define_method("country", &parsed_number_country)
     .define_method("area_code", &parsed_number_area_code)
     .define_method("raw_national", &format_parsed_number_raw_national)
-    .define_method("raw_international", &format_parsed_number_raw_international);
+    .define_method("raw_international", &format_parsed_number_raw_international)
+    .define_method("possible_countries", &parsed_number_possible_countries)
+    .define_method("valid_countries", &parsed_number_valid_countries);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
