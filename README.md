@@ -218,6 +218,42 @@ PicoPhone.parse("+18005551234", "US").geographical?   # false (toll-free)
 PicoPhone.parse("+15102745656", "US").can_be_internationally_dialled?  # true
 ```
 
+### Supported types for a region
+
+`supported_types_for_region` returns the phone number types that actually exist in a given country. The set of types varies significantly between regions.
+
+```
+PicoPhone.supported_types_for_region("US")
+# => [:fixed_line, :mobile, :toll_free, :premium_rate, :personal_number]
+
+PicoPhone.supported_types_for_region("AU")
+# => [:fixed_line, :mobile, :toll_free, :premium_rate, :shared_cost, :voip, :pager]
+```
+
+### Example numbers
+
+`example_number` returns a valid example `PhoneNumber` instance for a region. `example_number_for_type` returns an example for a specific number type. Both return a fully parsed object, so all the usual methods are available on the result.
+
+```
+PicoPhone.example_number("AU").e164            # "+61212345678"
+PicoPhone.example_number("AU").national        # "02 1234 5678"
+
+PicoPhone.example_number_for_type("US", :toll_free).e164   # "+18002345678"
+PicoPhone.example_number_for_type("AU", :mobile).e164      # "+61412345678"
+```
+
+### Checking if a number is possible for a specific type
+
+`possible_for_type?` checks whether a number's digit count is consistent with a given type in its region. This is a length-based check — more permissive than `type`, which classifies the number strictly.
+
+```
+phone = PicoPhone.parse("+15102745656", "US")
+phone.possible_for_type?(:fixed_line_or_mobile)  # true
+phone.possible_for_type?(:toll_free)             # true  (same digit count)
+
+phone.type  # :fixed_line_or_mobile  (strict classification)
+```
+
 ### Vanity numbers
 
 `alpha_number?` identifies vanity number strings before parsing or converting them. `convert_alpha_characters` converts the alpha characters to their dialable digit equivalents.
