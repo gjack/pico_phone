@@ -102,6 +102,34 @@ phone.country_code     # 61
 phone.area_code        # empty string because phone doesn't have one
 ```
 
+### Finding possible or valid countries for a phone number
+
+A calling code is not always 1:1 with a country. `+1` covers the US, Canada, and around 20 Caribbean territories. `+7` covers both Russia and Kazakhstan. These methods let you find which countries a given number could belong to.
+
+`possible_countries` uses a lenient check: for unambiguous calling codes (e.g. `+33` for France) it only requires the number to be the right length. For ambiguous calling codes it narrows the list down using full pattern validation, since length alone cannot distinguish between candidates.
+
+`valid_countries` always applies full pattern validation and returns only the regions where the number is genuinely valid.
+
+```
+PicoPhone.possible_countries("+15102745656")  # ["US"]
+PicoPhone.possible_countries("+12423570000")  # ["BS"]  (Bahamas, also a NANP number)
+PicoPhone.possible_countries("+78005553535")  # ["RU", "KZ"]
+
+PicoPhone.valid_countries("+15102745656")     # ["US"]
+PicoPhone.valid_countries("+78005553535")     # ["RU", "KZ"]
+
+# A number that is the right length for France but fails pattern validation
+PicoPhone.possible_countries("+33000000000") # ["FR"]
+PicoPhone.valid_countries("+33000000000")    # []
+
+# Both methods return [] for unparseable input
+PicoPhone.possible_countries("not a number") # []
+
+phone = PicoPhone.parse("+15102745656")
+phone.possible_countries  # ["US"]
+phone.valid_countries     # ["US"]
+```
+
 ### Extensions
 
 PicoPhone exposes libphonenumber's methods that identify and extract the extension out of a parsed phone number.
