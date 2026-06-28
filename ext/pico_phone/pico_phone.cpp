@@ -197,6 +197,7 @@ VALUE phone_number_nullify_ivars(Object self) {
   rb_iv_set(self, "@country", Qnil);
   rb_iv_set(self, "@area_code", Qnil);
   rb_iv_set(self, "@local_number", Qnil);
+  rb_iv_set(self, "@original_format", Qnil);
   rb_iv_set(self, "@raw_national", Qnil);
 
   return Qtrue;
@@ -439,6 +440,46 @@ String format_parsed_number_full_e164(Object self) {
   return format_parsed_phone_number(self, PhoneNumberUtil::PhoneNumberFormat::E164, true);
 }
 
+String format_parsed_number_in_original_format(Object self) {
+  if (rb_ivar_defined(self, rb_intern("@original_format"))) {
+    return rb_iv_get(self, "@original_format");
+  }
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  VALUE input_country = rb_iv_get(self, "@input_country");
+  if (RB_NIL_P(input_country)) {
+    input_country = rb_iv_get(rb_mPicoPhone, "@default_country");
+  }
+  std::string region(StringValuePtr(input_country), RSTRING_LEN(input_country));
+
+  std::string formatted;
+  phone_util.FormatInOriginalFormat(*phone_number, region, &formatted);
+  return rb_iv_set(self, "@original_format", rb_str_new(formatted.c_str(), formatted.size()));
+}
+
+String format_parsed_number_out_of_country(Object self, String calling_from) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  std::string formatted;
+  phone_util.FormatOutOfCountryCallingNumber(*phone_number, calling_from.c_str(), &formatted);
+  return rb_str_new(formatted.c_str(), formatted.size());
+}
+
+String format_parsed_number_mobile_dialing(Object self, String calling_from) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  std::string formatted;
+  phone_util.FormatNumberForMobileDialing(*phone_number, calling_from.c_str(), true, &formatted);
+  return rb_str_new(formatted.c_str(), formatted.size());
+}
+
 Object parsed_phone_number_has_extension(Object self) {
   PhoneNumber *phone_number;
   TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
@@ -600,6 +641,9 @@ void Init_pico_phone() {
     .define_method("full_national", &format_parsed_number_full_national)
     .define_method("full_international", &format_parsed_full_international)
     .define_method("full_e164", &format_parsed_number_full_e164)
+    .define_method("format_in_original_format", &format_parsed_number_in_original_format)
+    .define_method("out_of_country_format", &format_parsed_number_out_of_country)
+    .define_method("mobile_dialing_format", &format_parsed_number_mobile_dialing)
     .define_method("country_code", &parsed_number_country_code)
     .define_method("country", &parsed_number_country)
     .define_method("area_code", &parsed_number_area_code)

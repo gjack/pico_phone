@@ -608,6 +608,46 @@ RSpec.describe PicoPhone do
       end
     end
 
+    describe "#format_in_original_format" do
+      it "returns the number in international format when it was entered with a + prefix" do
+        phone = PicoPhone::PhoneNumber.new("+15102745656", "US")
+        expect(phone.format_in_original_format).to eq("+1 510-274-5656")
+      end
+
+      it "returns the number in national format when it was entered without a country code" do
+        phone = PicoPhone::PhoneNumber.new("5102745656", "US")
+        expect(phone.format_in_original_format).to eq("(510) 274-5656")
+      end
+    end
+
+    describe "#out_of_country_format" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("+15102745656", "US") }
+
+      it "returns the number formatted for dialing from within the same NANP region" do
+        expect(us_number.out_of_country_format("US")).to eq("1 (510) 274-5656")
+      end
+
+      it "returns the number formatted for dialing from the UK" do
+        expect(us_number.out_of_country_format("GB")).to eq("00 1 510-274-5656")
+      end
+
+      it "returns the number formatted for dialing from Australia" do
+        expect(us_number.out_of_country_format("AU")).to eq("0011 1 510-274-5656")
+      end
+    end
+
+    describe "#mobile_dialing_format" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("+15102745656", "US") }
+
+      it "returns the number formatted for mobile dialing from the US" do
+        expect(us_number.mobile_dialing_format("US")).to eq("+1 510-274-5656")
+      end
+
+      it "returns the number formatted for mobile dialing from the UK" do
+        expect(us_number.mobile_dialing_format("GB")).to eq("+1 510-274-5656")
+      end
+    end
+
     describe "#possible_countries" do
       it "returns the correct region for an unambiguous calling code" do
         expect(PicoPhone::PhoneNumber.new("+33123456789").possible_countries).to eq(["FR"])
