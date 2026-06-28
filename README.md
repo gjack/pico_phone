@@ -131,6 +131,34 @@ phone.original   # "not a number"
 phone.to_s       # "not a number"
 ```
 
+### Additional formatting options
+
+`format_in_original_format` returns the number formatted in the same style it was originally entered — international if a `+` prefix was used, national otherwise.
+
+```
+PicoPhone.parse("+15102745656", "US").format_in_original_format  # "+1 510-274-5656"
+PicoPhone.parse("5102745656", "US").format_in_original_format    # "(510) 274-5656"
+```
+
+`out_of_country_format(region)` returns the dialing string needed to reach the number from a given country. Within shared-prefix regions such as NANP no international prefix is prepended; from other regions the appropriate dialing prefix for the calling country is used.
+
+```
+phone = PicoPhone.parse("+15102745656", "US")
+
+phone.out_of_country_format("US")  # "1 (510) 274-5656"
+phone.out_of_country_format("GB")  # "00 1 510-274-5656"
+phone.out_of_country_format("AU")  # "0011 1 510-274-5656"
+```
+
+`mobile_dialing_format(region)` returns the most convenient representation for dialing the number from a mobile device in the given region, typically the full international format with separators.
+
+```
+phone = PicoPhone.parse("+15102745656", "US")
+
+phone.mobile_dialing_format("US")  # "+1 510-274-5656"
+phone.mobile_dialing_format("GB")  # "+1 510-274-5656"
+```
+
 ### Finding possible or valid countries for a phone number
 
 A calling code is not always 1:1 with a country. `+1` covers the US, Canada, and around 20 Caribbean territories. `+7` covers both Russia and Kazakhstan. These methods let you find which countries a given number could belong to.
