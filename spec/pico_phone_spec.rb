@@ -137,6 +137,40 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "supported_regions" do
+    it "returns an Array" do
+      expect(PicoPhone.supported_regions).to be_an(Array)
+    end
+
+    it "includes common regions" do
+      expect(PicoPhone.supported_regions).to include("US", "AU", "GB", "FR")
+    end
+
+    it "returns all supported regions" do
+      expect(PicoPhone.supported_regions.size).to eq(245)
+    end
+  end
+
+  describe "convert_alpha_characters" do
+    it "converts alpha characters in a vanity number to digits" do
+      expect(PicoPhone.convert_alpha_characters("1-800-FLOWERS")).to eq("1-800-3569377")
+    end
+
+    it "leaves a number with no alpha characters unchanged" do
+      expect(PicoPhone.convert_alpha_characters("+15102745656")).to eq("+15102745656")
+    end
+  end
+
+  describe "alpha_number?" do
+    it "returns true for a vanity number containing alpha characters" do
+      expect(PicoPhone.alpha_number?("1-800-FLOWERS")).to be true
+    end
+
+    it "returns false for a regular digit-only phone number" do
+      expect(PicoPhone.alpha_number?("+15102745656")).to be false
+    end
+  end
+
   describe PicoPhone::PhoneNumber do
     before do
       PicoPhone.default_country = "US"
@@ -677,6 +711,48 @@ RSpec.describe PicoPhone do
 
       it "disambiguates NANP numbers to the correct country" do
         expect(PicoPhone::PhoneNumber.new("+15102745656").valid_countries).to eq(["US"])
+      end
+    end
+
+    describe "#possible_with_reason" do
+      it "returns :is_possible for a valid number" do
+        expect(PicoPhone::PhoneNumber.new("+15102745656", "US").possible_with_reason).to eq(:is_possible)
+      end
+
+      it "returns :too_short for a number with too few digits" do
+        expect(PicoPhone::PhoneNumber.new("123", "US").possible_with_reason).to eq(:too_short)
+      end
+
+      it "returns :too_long for a number with too many digits" do
+        expect(PicoPhone::PhoneNumber.new("123456789000", "US").possible_with_reason).to eq(:too_long)
+      end
+    end
+
+    describe "#geographical?" do
+      it "returns true for a US fixed-line number with a geographic area code" do
+        expect(PicoPhone::PhoneNumber.new("+15102745656", "US").geographical?).to be true
+      end
+
+      it "returns true for an AU fixed-line number" do
+        expect(PicoPhone::PhoneNumber.new("+61212345678", "AU").geographical?).to be true
+      end
+
+      it "returns false for an AU mobile number" do
+        expect(PicoPhone::PhoneNumber.new("+61435582008", "AU").geographical?).to be false
+      end
+
+      it "returns false for a toll-free number" do
+        expect(PicoPhone::PhoneNumber.new("+18005551234", "US").geographical?).to be false
+      end
+    end
+
+    describe "#can_be_internationally_dialled?" do
+      it "returns true for a regular phone number" do
+        expect(PicoPhone::PhoneNumber.new("+15102745656", "US").can_be_internationally_dialled?).to be true
+      end
+
+      it "returns true for a toll-free number that is accessible internationally" do
+        expect(PicoPhone::PhoneNumber.new("+18005551234", "US").can_be_internationally_dialled?).to be true
       end
     end
 
