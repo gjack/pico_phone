@@ -1,6 +1,7 @@
 # PicoPhone
 
 [![CI](https://github.com/gjack/pico_phone/actions/workflows/ci.yml/badge.svg)](https://github.com/gjack/pico_phone/actions/workflows/ci.yml)
+[![Gem Version](https://badge.fury.io/rb/pico_phone.svg)](https://badge.fury.io/rb/pico_phone)
 
 A thin Ruby wrapper around Google's [libphonenumber](https://github.com/google/libphonenumber) C++ library, built with [Rice](https://github.com/ruby-rice/rice). It uses the same engine as Android's dialer for parsing, validating, and formatting phone numbers in any country.
 
