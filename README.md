@@ -18,7 +18,7 @@ Or install directly:
 gem install pico_phone
 ```
 
-Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs) and `x86_64-linux` (Ubuntu 24.04). On these platforms no system libraries or compiler are required — Bundler will select the right binary automatically.
+Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs), `x86_64-linux`, and `aarch64-linux` (Ubuntu 24.04). On these platforms no system libraries or compiler are required — Bundler will select the right binary automatically.
 
 On other platforms the gem compiles from source and requires libphonenumber:
 
