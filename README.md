@@ -6,21 +6,7 @@ A thin Ruby wrapper around Google's [libphonenumber](https://github.com/google/l
 
 ## Installation
 
-pico_phone requires libphonenumber to be installed on your system before the gem can compile.
-
-On macOS:
-
-```
-brew install libphonenumber
-```
-
-On Ubuntu/Debian:
-
-```
-sudo apt-get install libphonenumber-dev
-```
-
-Then add to your Gemfile:
+Add to your Gemfile:
 
 ```ruby
 gem 'pico_phone'
@@ -30,6 +16,18 @@ Or install directly:
 
 ```
 gem install pico_phone
+```
+
+Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs) and `x86_64-linux` (Ubuntu 24.04). On these platforms no system libraries or compiler are required — Bundler will select the right binary automatically.
+
+On other platforms the gem compiles from source and requires libphonenumber:
+
+```
+# macOS
+brew install libphonenumber
+
+# Ubuntu/Debian
+sudo apt-get install libphonenumber-dev
 ```
 
 ## Usage
