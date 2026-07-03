@@ -1,49 +1,35 @@
 # PicoPhone
 
-This gem was developed as an extension of Google's [libphonenumber C++ library](https://github.com/google/libphonenumber/tree/424617599369e7adba8a5d1509b910d9ce2e3e44/cpp), using a Ruby interface for C++ extensions called [Rice](https://github.com/ruby-rice/rice).
+[![CI](https://github.com/gjack/pico_phone/actions/workflows/ci.yml/badge.svg)](https://github.com/gjack/pico_phone/actions/workflows/ci.yml)
 
-You can experiment with the code by running `bin/console` for an interactive prompt.
+A thin Ruby wrapper around Google's [libphonenumber](https://github.com/google/libphonenumber) C++ library, built with [Rice](https://github.com/ruby-rice/rice). It uses the same engine as Android's dialer for parsing, validating, and formatting phone numbers in any country.
 
 ## Installation
 
-You will first need to install `libphonenumber`. 
+pico_phone requires libphonenumber to be installed on your system before the gem can compile.
 
-In MacOS, you can do this by running
+On macOS:
 
 ```
 brew install libphonenumber
 ```
 
-You can also follow [the instructions in the repo](https://github.com/google/libphonenumber/tree/424617599369e7adba8a5d1509b910d9ce2e3e44/cpp) for other systems or for manual installation.
-
-After cloning the repo, run `bundle install`. 
-
-Notice that the gem has not been published and it's not compiled yet, so you will have to run the following in order to build the gem.
+On Ubuntu/Debian:
 
 ```
-gem build pico_phone.gemspec
-``` 
-
-Once the gem is built, you should be able to install it
-
-```
-% gem install pico_phone-0.0.1.gem
-Building native extensions. This could take a while...
-Successfully installed pico_phone-0.0.1
-Parsing documentation for pico_phone-0.0.1
-Installing ri documentation for pico_phone-0.0.1
-Done installing documentation for pico_phone after 0 seconds
-1 gem installed
+sudo apt-get install libphonenumber-dev
 ```
 
-And, finally, try it out in IRB
+Then add to your Gemfile:
+
+```ruby
+gem 'pico_phone'
+```
+
+Or install directly:
 
 ```
-irb(main):001> require "pico_phone"
-=> true
-irb(main):002> PicoPhone::VERSION
-=> "0.0.1"
-irb(main):003>
+gem install pico_phone
 ```
 
 ## Usage
