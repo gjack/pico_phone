@@ -11,12 +11,19 @@ RSpec::Core::RakeTask.new(:spec) do |t|
 end
 
 gemspec = Gem::Specification.load('pico_phone.gemspec')
-Rake::ExtensionTask.new do |ext|
-  ext.name = 'pico_phone'
+
+Rake::ExtensionTask.new("pico_phone", gemspec) do |ext|
   ext.source_pattern = "*.{cpp}"
   ext.ext_dir = 'ext/pico_phone'
   ext.lib_dir = 'lib/pico_phone'
-  ext.gem_spec = gemspec
 end
 
 task default: [:compile, :spec]
+
+desc "Build static dependencies and package a native gem for the current platform"
+task "native:build" do
+  sh "bash ext/pico_phone/build_deps.sh"
+  ENV["PICO_PHONE_NATIVE_BUILD"] = "1"
+  Rake::Task["native"].invoke
+  Rake::Task["gem"].invoke
+end
