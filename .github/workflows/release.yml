@@ -76,6 +76,8 @@ jobs:
     name: Push to RubyGems
     needs: [build-native-darwin, build-native-linux, build-native-linux-arm]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
