@@ -8,19 +8,16 @@ Gem::Specification.new do |spec|
   spec.authors = ["Gabi Jack"]
   spec.email = ["gabi@gabijack.com"]
 
-  spec.summary = "Uses the Google libphonenumber C lib to parse, validate, and format phone numbers"
-  spec.description = <<~MSG.strip
-    Ruby binding of the Google's native C++ [libphonenumber](https://github.com/google/libphonenumber).
-  MSG
+  spec.summary = "A thin Ruby wrapper around Google's libphonenumber for parsing, validating, and formatting phone numbers"
+  spec.description = "pico_phone wraps Google's libphonenumber C++ library via a Rice native extension, " \
+    "providing phone number parsing, validation, and formatting for any country. It uses the same engine " \
+    "as Android's dialer and delivers native C++ performance for high-throughput server-side use."
   spec.homepage = "https://github.com/gjack/pico_phone"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.0.0"
 
-  # spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
-
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/gjack/pico_phone"
-  # spec.metadata["changelog_uri"] = "TODO: Put your gem's CHANGELOG.md URL here."
 
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
@@ -29,7 +26,8 @@ Gem::Specification.new do |spec|
     'ext/pico_phone/extconf.rb',
     'ext/pico_phone/pico_phone.cpp',
     'lib/pico_phone.rb',
-    'lib/pico_phone/version.rb'
+    'lib/pico_phone/version.rb',
+    'lib/pico_phone/phone_number.rb'
   ]
   spec.require_paths = ["lib"]
 
@@ -38,7 +36,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec", "~> 3.0"
   spec.add_development_dependency "rake", "~> 13.0"
   spec.add_development_dependency "rake-compiler", "~> 1.2"
-
-  # For more information and examples about making a new gem, check out our
-  # guide at: https://bundler.io/guides/creating_gem.html
 end
