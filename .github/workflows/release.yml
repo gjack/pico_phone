@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-native-darwin:
+    name: Native gem — arm64-darwin
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - uses: actions/cache@v4
+        with:
+          path: ext/pico_phone/vendor/install
+          key: native-deps-darwin-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
+      - name: Build native gem
+        run: rake native:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-arm64-darwin
+          path: pkg/pico_phone-*.gem
+
+  build-native-linux:
+    name: Native gem — x86_64-linux
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Install system build dependencies
+        run: sudo apt-get install -y cmake libicu-dev
+      - uses: actions/cache@v4
+        with:
+          path: ext/pico_phone/vendor/install
+          key: native-deps-linux-x86_64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
+      - name: Build native gem
+        run: rake native:build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gem-x86_64-linux
+          path: pkg/pico_phone-*.gem
+
+  release:
+    name: Push to RubyGems
+    needs: [build-native-darwin, build-native-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Build source gem
+        run: rake build
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gem-*
+          merge-multiple: true
+          path: pkg/
+      - name: Push all gems to RubyGems
+        run: |
+          mkdir -p ~/.gem
+          printf -- '---\n:rubygems_api_key: %s\n' "$RUBYGEMS_API_KEY" > ~/.gem/credentials
+          chmod 0600 ~/.gem/credentials
+          for gem in pkg/*.gem; do gem push "$gem"; done
+        env:
+          RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
