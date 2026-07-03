@@ -28,12 +28,10 @@ if NATIVE_BUILD
     end
   else
     # Linux: libphonenumber was built with USE_BOOST=OFF so no Boost needed.
-    # ICU static archives come from libicu-dev.
-    lib_arch = RbConfig::CONFIG["arch"].include?("x86_64") ? "x86_64-linux-gnu" : "aarch64-linux-gnu"
-    %w[libicui18n libicuuc libicudata].each do |lib|
-      static_libs << "/usr/lib/#{lib_arch}/#{lib}.a"
-    end
-    $LOCAL_LIBS << " -lpthread -ldl"
+    # Ubuntu's libicu-dev static archives are not compiled with -fPIC and cannot
+    # be linked into a shared object. Link ICU dynamically instead — libicu74 is
+    # part of the Ubuntu 24.04 base system and is present in the target environment.
+    $LOCAL_LIBS << " -licui18n -licuuc -licudata -lpthread -ldl"
   end
 
   $LOCAL_LIBS << " " + static_libs.join(" ")
