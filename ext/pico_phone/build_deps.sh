@@ -13,6 +13,7 @@ ABSEIL_TARBALL="$SRC_DIR/abseil-${ABSEIL_VERSION}.tar.gz"
 ABSEIL_SRC="$BUILD_DIR/abseil-cpp-${ABSEIL_VERSION}"
 ABSEIL_BUILD="$BUILD_DIR/abseil-build"
 
+OS="$(uname)"
 CPU_COUNT=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
 
 echo "==> Downloading abseil ${ABSEIL_VERSION}..."
@@ -118,8 +119,17 @@ BOOST_PATCH_URL="https://github.com/google/libphonenumber/commit/72c1023fbf00fc4
 BOOST_PATCH_SHA256="6bce9d77b45f35a84ef39831bf2cca793b11aa7b92bd6d71000397d3176f0345"
 BOOST_PATCH_FILE="$SRC_DIR/libphonenumber-boost-fix.patch"
 
-BOOST_PREFIX="$(brew --prefix boost)"
-ICU_PREFIX="$(brew --prefix icu4c@78)"
+if [[ "$OS" == "Darwin" ]]; then
+  BOOST_PREFIX="$(brew --prefix boost)"
+  ICU_PREFIX="$(brew --prefix icu4c@78)"
+  PHONE_CMAKE_PREFIX="${INSTALL_DIR};${BOOST_PREFIX};${ICU_PREFIX}"
+  USE_BOOST="ON"
+else
+  # Linux: libphonenumber built without Boost (uses std::mutex/thread via C++17).
+  # ICU comes from the system (libicu-dev). Boost not needed.
+  PHONE_CMAKE_PREFIX="${INSTALL_DIR}"
+  USE_BOOST="OFF"
+fi
 
 echo "==> Downloading libphonenumber ${LIBPHONE_VERSION}..."
 if [ ! -f "$LIBPHONE_TARBALL" ]; then
@@ -164,7 +174,8 @@ cmake \
   -DBUILD_SHARED_LIBS=OFF \
   -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
   -DCMAKE_CXX_STANDARD=17 \
-  -DCMAKE_PREFIX_PATH="${INSTALL_DIR};${BOOST_PREFIX};${ICU_PREFIX}" \
+  -DCMAKE_PREFIX_PATH="${PHONE_CMAKE_PREFIX}" \
+  -DUSE_BOOST="${USE_BOOST}" \
   -DREGENERATE_METADATA=OFF \
   -DBUILD_GEOCODER=OFF \
   -DBUILD_TESTING=OFF

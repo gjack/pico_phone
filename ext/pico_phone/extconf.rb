@@ -26,6 +26,14 @@ if NATIVE_BUILD
     %w[libicui18n libicuuc libicudata].each do |lib|
       static_libs << "#{icu_prefix}/lib/#{lib}.a"
     end
+  else
+    # Linux: libphonenumber was built with USE_BOOST=OFF so no Boost needed.
+    # ICU static archives come from libicu-dev.
+    lib_arch = RbConfig::CONFIG["arch"].include?("x86_64") ? "x86_64-linux-gnu" : "aarch64-linux-gnu"
+    %w[libicui18n libicuuc libicudata].each do |lib|
+      static_libs << "/usr/lib/#{lib_arch}/#{lib}.a"
+    end
+    $LOCAL_LIBS << " -lpthread -ldl"
   end
 
   $LOCAL_LIBS << " " + static_libs.join(" ")
