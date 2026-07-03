@@ -13,3 +13,4 @@ mkmf.log
 # rspec failure tracking
 .rspec_status
 .gem
+ext/pico_phone/vendor/
