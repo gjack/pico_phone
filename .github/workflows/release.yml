@@ -96,7 +96,15 @@ jobs:
           mkdir -p ~/.gem
           printf -- '---\n:rubygems_api_key: %s\n' "$RUBYGEMS_API_KEY" > ~/.gem/credentials
           chmod 0600 ~/.gem/credentials
-          for gem in pkg/*.gem; do gem push "$gem"; done
+          for gem in pkg/*.gem; do
+            output=$(gem push "$gem" 2>&1) && echo "$output" || {
+              if echo "$output" | grep -qE "already pushed|Repushing"; then
+                echo "Already published, skipping: $gem"
+              else
+                echo "$output" >&2; exit 1
+              fi
+            }
+          done
         env:
           RUBYGEMS_API_KEY: ${{ secrets.RUBYGEMS_API_KEY }}
       - name: Create GitHub Release
