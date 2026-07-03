@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
 require "bundler/gem_tasks"
-require "rspec/core/rake_task"
 require 'rake/extensiontask'
 
-desc "pico_phone test suite"
-RSpec::Core::RakeTask.new(:spec) do |t|
-  t.pattern = "spec/*_spec.rb"
-  t.verbose = false
+begin
+  require "rspec/core/rake_task"
+  RSpec::Core::RakeTask.new(:spec) do |t|
+    t.pattern = "spec/*_spec.rb"
+    t.verbose = false
+  end
+rescue LoadError
 end
 
 gemspec = Gem::Specification.load('pico_phone.gemspec')

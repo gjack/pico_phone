@@ -20,7 +20,7 @@ jobs:
           path: ext/pico_phone/vendor/install
           key: native-deps-darwin-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
       - name: Build native gem
-        run: rake native:build
+        run: bundle exec rake native:build
       - uses: actions/upload-artifact@v4
         with:
           name: gem-arm64-darwin
@@ -42,7 +42,7 @@ jobs:
           path: ext/pico_phone/vendor/install
           key: native-deps-linux-x86_64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
       - name: Build native gem
-        run: rake native:build
+        run: bundle exec rake native:build
       - uses: actions/upload-artifact@v4
         with:
           name: gem-x86_64-linux
@@ -59,7 +59,7 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: true
       - name: Build source gem
-        run: rake build
+        run: bundle exec rake build
       - uses: actions/download-artifact@v4
         with:
           pattern: gem-*
