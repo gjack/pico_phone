@@ -16,7 +16,7 @@ GEM
     rake (13.2.1)
     rake-compiler (1.2.8)
       rake
-    rice (4.3.3)
+    rice (4.5.0)
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
