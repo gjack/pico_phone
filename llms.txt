@@ -1,0 +1,16 @@
+# PicoPhone
+
+> Ruby gem wrapping Google's libphonenumber C++ library via a Rice native extension. Parses, validates, and formats phone numbers for any country, using the same engine as Android's dialer.
+
+Core API surface: module-level methods on `PicoPhone` (`.parse`, `.valid?`, `.possible?`, `.valid_for_country?`, `.supported_regions`, `.supported_types_for_region`, `.example_number`, `.convert_alpha_characters`, `.emergency_number?`, `.short_number_valid?`, `.short_number_cost`) and instance methods on the `PicoPhone::PhoneNumber` object returned by `.parse` (`#valid?`, `#possible?`, `#e164`, `#national`, `#international`, `#type`, `#country`, `#country_code`, `#area_code`, `#local_number`, `#extension`, `#possible_countries`, `#valid_countries`).
+
+## Docs
+
+- [README](https://github.com/gjack/pico_phone/blob/main/README.md): full usage guide — every method above has a runnable example with expected output
+- [YARD-annotated method stubs](https://github.com/gjack/pico_phone/blob/main/lib/pico_phone/phone_number.rb): `@param`/`@return` docs for every public method (this file is documentation-only, not loaded at runtime — actual implementation is the native extension)
+- [Releases / changelog](https://github.com/gjack/pico_phone/releases)
+
+## Optional
+
+- [Security policy](https://github.com/gjack/pico_phone/blob/main/SECURITY.md)
+- [libphonenumber upstream](https://github.com/google/libphonenumber): pico_phone is a thin wrapper — region codes, number types, and formatting edge cases are inherited from this library, not defined by pico_phone itself
