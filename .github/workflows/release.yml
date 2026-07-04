@@ -20,7 +20,7 @@ jobs:
           bundler-cache: true
       - name: Install macOS build dependencies
         run: brew install boost icu4c@78
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
           key: native-deps-darwin-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
@@ -42,7 +42,7 @@ jobs:
           bundler-cache: true
       - name: Install system build dependencies
         run: sudo apt-get install -y cmake libicu-dev
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
           key: native-deps-linux-x86_64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
@@ -64,7 +64,7 @@ jobs:
           bundler-cache: true
       - name: Install system build dependencies
         run: sudo apt-get install -y cmake libicu-dev
-      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
           key: native-deps-linux-aarch64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
