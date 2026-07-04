@@ -1,0 +1,43 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '30 3 * * 4'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [cpp, ruby]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install system dependencies
+        if: matrix.language == 'cpp'
+        run: sudo apt-get update -q && sudo apt-get install -y libphonenumber-dev
+
+      - uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3.36.3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Build extension
+        if: matrix.language == 'cpp'
+        run: bundle exec rake compile
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3.36.3

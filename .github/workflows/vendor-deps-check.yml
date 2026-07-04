@@ -1,0 +1,60 @@
+name: Check vendored native dependency versions
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Compare pinned versions against upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          pinned_abseil=$(grep -oP '(?<=^ABSEIL_VERSION=")[^"]+' ext/pico_phone/build_deps.sh)
+          pinned_protobuf=$(grep -oP '(?<=^PROTOBUF_VERSION=")[^"]+' ext/pico_phone/build_deps.sh)
+          pinned_libphone=$(grep -oP '(?<=^LIBPHONE_VERSION=")[^"]+' ext/pico_phone/build_deps.sh)
+
+          latest_abseil=$(gh api repos/abseil/abseil-cpp/tags --jq '.[0].name' | sed 's/^v//')
+          latest_protobuf=$(gh api repos/protocolbuffers/protobuf/releases/latest --jq '.tag_name' | sed 's/^v//')
+          latest_libphone=$(gh api repos/google/libphonenumber/tags --jq '.[0].name' | sed 's/^v//')
+
+          stale=""
+          if [ "$pinned_abseil" != "$latest_abseil" ]; then
+            stale="${stale}- abseil-cpp: pinned ${pinned_abseil}, latest ${latest_abseil}\n"
+          fi
+          if [ "$pinned_protobuf" != "$latest_protobuf" ]; then
+            stale="${stale}- protobuf: pinned ${pinned_protobuf}, latest ${latest_protobuf}\n"
+          fi
+          if [ "$pinned_libphone" != "$latest_libphone" ]; then
+            stale="${stale}- libphonenumber: pinned ${pinned_libphone}, latest ${latest_libphone}\n"
+          fi
+
+          if [ -z "$stale" ]; then
+            echo "All vendored deps up to date."
+            exit 0
+          fi
+
+          printf 'Stale deps found:\n%b\n' "$stale"
+
+          title="Vendored native deps are out of date"
+          body=$(printf 'The following vendored native dependencies in `ext/pico_phone/build_deps.sh` have newer upstream releases:\n\n%b\nUpdate the version + SHA-256 in `build_deps.sh`, then verify the native gem still builds and tests pass before bumping.\n\n_Note: upstream tag ordering is not always semver-sorted, so double-check before treating this as authoritative._' "$stale")
+
+          existing=$(gh issue list --state open --json number,title --jq '.[] | select(.title=="'"$title"'") | .number' | head -1)
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi
