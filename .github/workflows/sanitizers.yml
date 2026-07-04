@@ -1,0 +1,60 @@
+name: Sanitizers (ASan/UBSan)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  sanitize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Install system dependencies
+        run: sudo apt-get update -q && sudo apt-get install -y libphonenumber-dev
+
+      - uses: ruby/setup-ruby@d45b1a4e94b71acab930e56e79c6aa188764e7f9 # v1.316.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Build extension normally (to generate the Makefile)
+        run: bundle exec rake compile
+
+      - name: Rebuild extension with ASan/UBSan instrumentation
+        run: |
+          set -euo pipefail
+          makefile=$(find tmp -name Makefile | head -1)
+          build_dir=$(dirname "$makefile")
+          cd "$build_dir"
+
+          cur_cxxflags=$(sed -n 's/^CXXFLAGS *= *//p' Makefile)
+          cur_ldsharedxx=$(sed -n 's/^LDSHAREDXX *= *//p' Makefile)
+
+          make clean
+          make CXXFLAGS="${cur_cxxflags} -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1" \
+               LDSHAREDXX="${cur_ldsharedxx} -fsanitize=address,undefined"
+          make install sitearchdir=../../../../lib/pico_phone sitelibdir=../../../../lib/pico_phone target_prefix=
+
+      - name: Run specs under ASan/UBSan
+        run: |
+          set -euo pipefail
+          makefile=$(find tmp -name Makefile | head -1)
+          cxx=$(sed -n 's/^CXX *= *//p' "$makefile")
+
+          preload=""
+          for lib in libasan.so libubsan.so; do
+            path=$("$cxx" -print-file-name="$lib")
+            if [ -f "$path" ]; then
+              preload="${preload:+$preload:}$path"
+            fi
+          done
+
+          LD_PRELOAD="$preload" \
+            ASAN_OPTIONS="detect_leaks=0:halt_on_error=1" \
+            UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1" \
+            bundle exec rspec
