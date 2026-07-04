@@ -12,5 +12,8 @@ mkmf.log
 .vscode
 # rspec failure tracking
 .rspec_status
-.gem
+*.gem
 ext/pico_phone/vendor/
+
+# private working notes — never committed
+/docs/
