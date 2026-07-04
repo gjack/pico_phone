@@ -18,6 +18,9 @@ Gem::Specification.new do |spec|
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/gjack/pico_phone"
+  spec.metadata["documentation_uri"] = "https://rubydoc.info/gems/pico_phone"
+  spec.metadata["changelog_uri"] = "https://github.com/gjack/pico_phone/releases"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/gjack/pico_phone/issues"
 
   spec.bindir = "exe"
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
