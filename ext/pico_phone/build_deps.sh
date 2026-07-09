@@ -8,9 +8,9 @@ INSTALL_DIR="$SCRIPT_DIR/vendor/install"
 
 mkdir -p "$SRC_DIR" "$BUILD_DIR" "$INSTALL_DIR"
 
-ABSEIL_VERSION="20260107.1"
+ABSEIL_VERSION="20260526.0"
 ABSEIL_URL="https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz"
-ABSEIL_SHA256="4314e2a7cbac89cac25a2f2322870f343d81579756ceff7f431803c2c9090195"
+ABSEIL_SHA256="6e1aee535473414164bf83e4ebc40240dec71a4701f8a642d906e95bea1aea0c"
 ABSEIL_TARBALL="$SRC_DIR/abseil-${ABSEIL_VERSION}.tar.gz"
 ABSEIL_SRC="$BUILD_DIR/abseil-cpp-${ABSEIL_VERSION}"
 ABSEIL_BUILD="$BUILD_DIR/abseil-build"
@@ -118,9 +118,9 @@ fi
 # libphonenumber
 # ---------------------------------------------------------------------------
 
-LIBPHONE_VERSION="9.0.33"
+LIBPHONE_VERSION="9.0.34"
 LIBPHONE_URL="https://github.com/google/libphonenumber/archive/refs/tags/v${LIBPHONE_VERSION}.tar.gz"
-LIBPHONE_SHA256="649e13846a7c49ca91ddfbf649e8feeafe7b04b590de4ce64cedfbf28d37b2ee"
+LIBPHONE_SHA256="5d2a61572110f0538fdb1afbc1f8381426fbfbbf544b45e8ae905297f2f5befa"
 LIBPHONE_TARBALL="$SRC_DIR/libphonenumber-${LIBPHONE_VERSION}.tar.gz"
 LIBPHONE_SRC="$BUILD_DIR/libphonenumber-${LIBPHONE_VERSION}"
 LIBPHONE_BUILD="$BUILD_DIR/libphonenumber-build"
