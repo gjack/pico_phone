@@ -28,7 +28,7 @@ On other platforms the gem compiles from source and requires libphonenumber:
 brew install libphonenumber
 
 # Ubuntu/Debian
-sudo apt-get install libphonenumber-dev
+sudo apt-get install libphonenumber-dev libicu-dev
 ```
 
 ## Usage
@@ -103,6 +103,21 @@ phone.country_code     # 61
 phone.area_code        # "" (AU mobile numbers have no geographical area code)
 phone.local_number     # "435582008" (full national number when there is no area code)
 ```
+
+### Geographic description
+
+```
+phone = PicoPhone.parse("5102745656", "US")
+
+phone.geo_name         # "California"
+phone.geo_name("de")   # description in another language, where available
+
+phone = PicoPhone.parse("0435582008", "AU")
+
+phone.geo_name         # "Australia" (falls back to the country name when no finer description exists)
+```
+
+Backed by libphonenumber's own offline geocoder, not a separate re-implementation — it loads its area-code data lazily, one region/language file at a time, so looking up a number doesn't pull the whole world's geocoding data into memory (see the memory benchmark in [Benchmarks](#benchmarks)).
 
 ### Checking validity for a specific country on a parsed number
 
@@ -344,17 +359,20 @@ $ bundle exec rake bench:memory
 
 Scenario                                    Peak MB
 ---------------------------------------------------
-baseline (bare ruby)                           20.8
-pico_phone (light: require + 1 parse)          31.2
-pico_phone (heavy: 600k parses)                41.3
-phonelib (light: require + 1 parse)            23.8
-phonelib (heavy: 600k parses)                   31.8
-phonelib (heavy, +geo/carrier/timezone)       182.7
+baseline (bare ruby)                           21.0
+pico_phone (light: require + 1 parse)          34.0
+pico_phone (heavy: 600k parses)                44.6
+pico_phone (heavy: 600k parses + geo_name)     44.0
+phonelib (light: require + 1 parse)            24.2
+phonelib (heavy: 600k parses)                   31.3
+phonelib (heavy, +geo/carrier/timezone)       186.7
 ```
 
-For the functionality both gems share — validate, parse, format — memory use is comparable, and pico_phone isn't the clear winner here: it uses somewhat *more* than phonelib in this test. Memory does stay flat under sustained load for both (no leak), but there's no evidence pico_phone is more memory-thrifty for equivalent work.
+For validate/parse/format, memory use is comparable between the two, and pico_phone isn't the clear winner: it uses somewhat *more* than phonelib in this test (partly the cost of linking in libphonenumber's offline geocoder, used below). Memory stays flat under sustained load for both (no leak).
 
-phonelib's footprint balloons only when something calls its `geo_name`, `carrier`, or `timezone` methods. Those lazily `Marshal.load` a ~4MB serialized data file — area-code-to-city, carrier, and timezone tables for every region in the world — into nested Ruby `Hash`/`Array`/`String` objects, then cache the result in a class variable for the life of the process (see `phonelib/core.rb`, `@@phone_ext_data`). pico_phone doesn't implement geocoding/carrier/timezone lookups at all, so this isn't a like-for-like comparison for that slice of functionality — it's a feature phonelib has that pico_phone doesn't, not the same job done more efficiently. If your app (or a dependency of it) calls those methods anywhere, expect phonelib's process RSS to jump by 100MB+ and stay there.
+phonelib's footprint balloons specifically when something calls `geo_name`, `carrier`, or `timezone`. Those lazily `Marshal.load` a ~4MB serialized data file — area-code-to-city, carrier, and timezone tables for every region in the world — into nested Ruby `Hash`/`Array`/`String` objects, then cache the whole thing in a class variable for the life of the process (see `phonelib/core.rb`, `@@phone_ext_data`).
+
+pico_phone's own `geo_name` (backed by libphonenumber's C++ offline geocoder, see [Geographic description](#geographic-description)) doesn't have this problem: it loads its area-code data lazily, one (country code, language) file at a time, and caches only what's actually queried — calling it 600k times across 30 regions above added ~0MB over the no-`geo_name` baseline. pico_phone doesn't implement carrier or timezone lookups (libphonenumber has no C++ port of those), so that slice of phonelib's footprint remains a feature gap on pico_phone's side, not something it does more efficiently.
 
 ## Development
 

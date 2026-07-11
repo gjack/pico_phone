@@ -671,6 +671,27 @@ RSpec.describe PicoPhone do
       end
     end
 
+    describe "#geo_name" do
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+      let(:aus_number) { PicoPhone::PhoneNumber.new("0435582008", "AU") }
+
+      it "returns an area-level description in English by default" do
+        expect(us_number.geo_name).to eq("California")
+      end
+
+      it "accepts a language code" do
+        expect(us_number.geo_name("de")).to be_a(String)
+      end
+
+      it "falls back to the country name when no finer description is available" do
+        expect(aus_number.geo_name).to eq("Australia")
+      end
+
+      it "returns an empty string for a number that could not be parsed" do
+        expect(PicoPhone::PhoneNumber.new("garbage").geo_name).to eq("")
+      end
+    end
+
     describe "#valid_for_country?" do
       let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
 
