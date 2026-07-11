@@ -155,6 +155,14 @@ module PicoPhone
     # @return [String]
     def local_number; end
 
+    # Text description of the geographic area the number is from (e.g. a city
+    # or region), falling back to the country name when no finer-grained
+    # description is available. Returns an empty string for non-geographical
+    # numbers (e.g. toll-free) or numbers that could not be parsed.
+    # @param language [String] two- or three-letter ISO 639 language code (default: "en")
+    # @return [String]
+    def geo_name(language = "en"); end
+
     # @param region [String] ISO 3166-1 alpha-2 region code
     # @return [Boolean]
     def valid_for_country?(region); end

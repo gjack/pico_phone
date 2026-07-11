@@ -7,6 +7,13 @@
 #include <phonenumbers/phonenumberutil.h>
 #include <phonenumbers/shortnumberinfo.h>
 
+// Ruby's regex engine (onigmo.h, pulled in via rice.hpp above) #defines UChar
+// as unsigned char; ICU (pulled in transitively by the geocoding header)
+// typedefs UChar as char16_t. We don't use Ruby's macro, so drop it before
+// any ICU header is reachable.
+#undef UChar
+#include <phonenumbers/geocoding/phonenumber_offline_geocoder.h>
+
 using namespace Rice;
 using namespace i18n::phonenumbers;
 
@@ -188,6 +195,32 @@ Object pico_phone_is_alpha_number(Object self, String str) {
 static const ShortNumberInfo& GetShortNumberInfo() {
   static ShortNumberInfo instance;
   return instance;
+}
+
+// PhoneNumberOfflineGeocoder lazily loads its area-code-to-description data
+// one (country calling code, language) file at a time on first lookup, and
+// caches each loaded file for the life of this instance -- unlike phonelib's
+// extended data, nothing gets pulled into memory until it's actually queried.
+static const PhoneNumberOfflineGeocoder& GetGeocoder() {
+  static PhoneNumberOfflineGeocoder instance;
+  return instance;
+}
+
+VALUE parsed_number_geo_name(int argc, VALUE *argv, VALUE self) {
+  VALUE language;
+  rb_scan_args(argc, argv, "01", &language);
+
+  std::string language_code = RB_NIL_P(language)
+    ? "en"
+    : std::string(StringValuePtr(language), RSTRING_LEN(language));
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  Locale locale(language_code.c_str());
+  std::string description = GetGeocoder().GetDescriptionForNumber(*phone_number, locale);
+
+  return rb_str_new(description.c_str(), description.size());
 }
 
 Object pico_phone_is_emergency_number(Object self, String number, String region) {
@@ -831,4 +864,5 @@ void Init_pico_phone() {
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
+    rb_define_method(rb_cPhoneNumber, "geo_name", reinterpret_cast<VALUE (*)(...)>(parsed_number_geo_name), -1);
 }
