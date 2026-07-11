@@ -178,6 +178,17 @@ else
   fi
   cd "$SCRIPT_DIR"
 
+  # The geocoder still uses absl::MutexLock's pointer-taking constructor,
+  # which our vendored Abseil (20260526.0) deprecates and -Werror turns into
+  # a build failure. Two call sites, fixed in place rather than via a
+  # hosted patch file since it's this small.
+  GEOCODER_CC="$LIBPHONE_SRC/cpp/src/phonenumbers/geocoding/phonenumber_offline_geocoder.cc"
+  if [ -f "$GEOCODER_CC" ]; then
+    echo "==> Patching geocoder for deprecated absl::MutexLock(ptr) usage..."
+    sed -i.bak 's/absl::MutexLock l(&mu_);/absl::MutexLock l(mu_);/' "$GEOCODER_CC"
+    rm -f "$GEOCODER_CC.bak"
+  fi
+
   echo "==> Configuring libphonenumber..."
   cmake \
     -S "$LIBPHONE_SRC/cpp" \
@@ -190,7 +201,7 @@ else
     -DCMAKE_PREFIX_PATH="${PHONE_CMAKE_PREFIX}" \
     -DUSE_BOOST="${USE_BOOST}" \
     -DREGENERATE_METADATA=OFF \
-    -DBUILD_GEOCODER=OFF \
+    -DBUILD_GEOCODER=ON \
     -DBUILD_TESTING=OFF
 
   echo "==> Building libphonenumber (using ${CPU_COUNT} cores)..."
