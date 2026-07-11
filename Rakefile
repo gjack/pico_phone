@@ -22,6 +22,21 @@ end
 
 task default: [:compile, :spec]
 
+namespace :bench do
+  desc "Compare pico_phone vs phonelib throughput (requires: bundle install)"
+  task :speed do
+    ruby "bench/speed.rb"
+  end
+
+  desc "Compare pico_phone vs phonelib peak memory (requires: bundle install)"
+  task :memory do
+    ruby "bench/memory.rb"
+  end
+end
+
+desc "Run all benchmarks"
+task bench: %w[bench:speed bench:memory]
+
 desc "Build static dependencies and package a native gem for the current platform"
 task "native:build" do
   require "rubygems/package"

@@ -317,6 +317,45 @@ phone.full_national   # (510) 274-5656 ext. 456
 ```
 
 
+## Benchmarks
+
+pico_phone wraps the actual libphonenumber C++ engine via [Rice](https://github.com/ruby-rice/rice). [phonelib](https://github.com/daddyz/phonelib) instead reimplements libphonenumber's pattern-matching in pure Ruby. That difference in architecture shows up clearly in throughput, and less clearly (and more conditionally) in memory.
+
+The numbers below are one data point — macOS arm64, Ruby 3.4.1, pico_phone vs. phonelib 0.10.22 — not a guarantee for your platform. Run `bundle exec rake bench` yourself to reproduce them (requires `bundle install`, which pulls in `phonelib` and `benchmark-ips` as dev-only dependencies for comparison).
+
+### Speed
+
+```
+$ bundle exec rake bench:speed
+
+                              pico_phone     phonelib
+valid?                         122.3k i/s     35.3k i/s   (4.5x slower)
+parse + e164                   158.3k i/s     63.9k i/s   (2.5x slower)
+parse + national                101.7k i/s     47.1k i/s   (3.4x slower)
+valid? (30 numbers, multi-region) 2.8k i/s      1.0k i/s   (2.9x slower)
+```
+
+Calling into compiled C++ beats matching regexes in Ruby, as expected.
+
+### Memory
+
+```
+$ bundle exec rake bench:memory
+
+Scenario                                    Peak MB
+---------------------------------------------------
+baseline (bare ruby)                           20.8
+pico_phone (light: require + 1 parse)          31.2
+pico_phone (heavy: 600k parses)                41.3
+phonelib (light: require + 1 parse)            23.8
+phonelib (heavy: 600k parses)                   31.8
+phonelib (heavy, +geo/carrier/timezone)       182.7
+```
+
+For the functionality both gems share — validate, parse, format — memory use is comparable, and pico_phone isn't the clear winner here: it uses somewhat *more* than phonelib in this test. Memory does stay flat under sustained load for both (no leak), but there's no evidence pico_phone is more memory-thrifty for equivalent work.
+
+phonelib's footprint balloons only when something calls its `geo_name`, `carrier`, or `timezone` methods. Those lazily `Marshal.load` a ~4MB serialized data file — area-code-to-city, carrier, and timezone tables for every region in the world — into nested Ruby `Hash`/`Array`/`String` objects, then cache the result in a class variable for the life of the process (see `phonelib/core.rb`, `@@phone_ext_data`). pico_phone doesn't implement geocoding/carrier/timezone lookups at all, so this isn't a like-for-like comparison for that slice of functionality — it's a feature phonelib has that pico_phone doesn't, not the same job done more efficiently. If your app (or a dependency of it) calls those methods anywhere, expect phonelib's process RSS to jump by 100MB+ and stay there.
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Running `rake spec` will run the tests. If you make any changes to the `pico_phone.cpp` file, running `rake` will compile the gem with the new changes and run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
