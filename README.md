@@ -119,6 +119,23 @@ phone.geo_name         # "Australia" (falls back to the country name when no fin
 
 Backed by libphonenumber's own offline geocoder, not a separate re-implementation — it loads its area-code data lazily, one region/language file at a time, so looking up a number doesn't pull the whole world's geocoding data into memory (see the memory benchmark in [Benchmarks](#benchmarks)).
 
+### Carrier lookup
+
+```
+phone = PicoPhone.parse("6001234567", "IN")
+
+phone.carrier_name         # "Reliance Jio"
+phone.carrier_name("de")   # carrier name in another language, where available
+
+phone = PicoPhone.parse("5102745656", "US")
+
+phone.carrier_name         # "" (no carrier mapping for this prefix -- number portability makes carrier-by-prefix unreliable in many countries, including the US)
+```
+
+`carrier_name` returns the carrier the number was **originally allocated to**, not necessarily its current carrier — in countries that support mobile number portability, a number may have since been ported away from that carrier. This matches libphonenumber's own Java carrier mapper, which documents the same caveat verbatim ("the carrier name is the one the number was originally allocated to, however if the country supports mobile number portability the number might not belong to the returned carrier anymore").
+
+libphonenumber has no upstream C++ port of its carrier mapper (only Java), so this is a first-party pico_phone implementation reusing the same lazy per-(country code, language) loading machinery as `geo_name` above, rather than a Ruby-level reimplementation. Unlike `geo_name`, there's no fallback to a country-level description when a prefix has no carrier data — an unmapped number just returns an empty string, matching phonelib's `carrier` semantics.
+
 ### Checking validity for a specific country on a parsed number
 
 The module-level `valid_for_country?` accepts a raw string. The same check is also available as an instance method once a number has been parsed.
@@ -343,11 +360,12 @@ The numbers below are one data point — macOS arm64, Ruby 3.4.1, pico_phone vs.
 ```
 $ bundle exec rake bench:speed
 
-                              pico_phone     phonelib
-valid?                         122.3k i/s     35.3k i/s   (4.5x slower)
-parse + e164                   158.3k i/s     63.9k i/s   (2.5x slower)
-parse + national                101.7k i/s     47.1k i/s   (3.4x slower)
-valid? (30 numbers, multi-region) 2.8k i/s      1.0k i/s   (2.9x slower)
+                                   pico_phone     phonelib
+valid?                              128.1k i/s     35.9k i/s   (4.7x slower)
+parse + e164                        168.8k i/s     64.9k i/s   (2.6x slower)
+parse + national                    109.5k i/s     47.4k i/s   (3.6x slower)
+valid? (30 numbers, multi-region)     3.0k i/s      1.0k i/s   (3.0x slower)
+carrier_name / carrier              173.5k i/s     42.9k i/s   (4.1x slower)
 ```
 
 Calling into compiled C++ beats matching regexes in Ruby, as expected.
@@ -359,20 +377,21 @@ $ bundle exec rake bench:memory
 
 Scenario                                    Peak MB
 ---------------------------------------------------
-baseline (bare ruby)                           21.0
-pico_phone (light: require + 1 parse)          34.0
-pico_phone (heavy: 600k parses)                44.6
-pico_phone (heavy: 600k parses + geo_name)     44.0
-phonelib (light: require + 1 parse)            24.2
-phonelib (heavy: 600k parses)                   31.3
-phonelib (heavy, +geo/carrier/timezone)       186.7
+baseline                                       22.8
+pico_phone (light)                             30.2
+pico_phone (heavy)                             40.5
+pico_phone (heavy, +geo_name)                  40.2
+pico_phone (heavy, +carrier_name)              39.4
+phonelib (light)                               24.9
+phonelib (heavy)                               32.0
+phonelib (heavy, +geo/carrier/timezone)       185.4
 ```
 
-For validate/parse/format, memory use is comparable between the two, and pico_phone isn't the clear winner: it uses somewhat *more* than phonelib in this test (partly the cost of linking in libphonenumber's offline geocoder, used below). Memory stays flat under sustained load for both (no leak).
+For validate/parse/format, memory use is comparable between the two, and pico_phone isn't the clear winner: it uses somewhat *more* than phonelib in this test (partly the cost of linking in libphonenumber's offline geocoder and carrier mapper, used below). Memory stays flat under sustained load for both (no leak).
 
 phonelib's footprint balloons specifically when something calls `geo_name`, `carrier`, or `timezone`. Those lazily `Marshal.load` a ~4MB serialized data file — area-code-to-city, carrier, and timezone tables for every region in the world — into nested Ruby `Hash`/`Array`/`String` objects, then cache the whole thing in a class variable for the life of the process (see `phonelib/core.rb`, `@@phone_ext_data`).
 
-pico_phone's own `geo_name` (backed by libphonenumber's C++ offline geocoder, see [Geographic description](#geographic-description)) doesn't have this problem: it loads its area-code data lazily, one (country code, language) file at a time, and caches only what's actually queried — calling it 600k times across 30 regions above added ~0MB over the no-`geo_name` baseline. pico_phone doesn't implement carrier or timezone lookups (libphonenumber has no C++ port of those), so that slice of phonelib's footprint remains a feature gap on pico_phone's side, not something it does more efficiently.
+pico_phone's `geo_name` (backed by libphonenumber's C++ offline geocoder, see [Geographic description](#geographic-description)) and `carrier_name` (see [Carrier lookup](#carrier-lookup)) don't have this problem: both load their prefix data lazily, one (country code, language) file at a time, and cache only what's actually queried — calling either 600k times across 30 regions above added no measurable RSS over the no-lookup baseline (both landed at or below the plain `pico_phone (heavy)` figure, within run-to-run noise). pico_phone doesn't implement timezone lookups (libphonenumber has no C++ port of that), so that slice of phonelib's footprint remains a feature gap on pico_phone's side, not something it does more efficiently.
 
 ## Development
 
