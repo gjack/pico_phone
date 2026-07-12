@@ -692,6 +692,27 @@ RSpec.describe PicoPhone do
       end
     end
 
+    describe "#carrier_name" do
+      let(:in_number) { PicoPhone::PhoneNumber.new("6001234567", "IN") }
+      let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
+
+      it "returns the carrier name in English by default" do
+        expect(in_number.carrier_name).to eq("Reliance Jio")
+      end
+
+      it "accepts a language code" do
+        expect(in_number.carrier_name("de")).to be_a(String)
+      end
+
+      it "returns an empty string when no carrier mapping exists for the prefix" do
+        expect(us_number.carrier_name).to eq("")
+      end
+
+      it "returns an empty string for a number that could not be parsed" do
+        expect(PicoPhone::PhoneNumber.new("garbage").carrier_name).to eq("")
+      end
+    end
+
     describe "#valid_for_country?" do
       let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
 
