@@ -28,6 +28,13 @@ Gem::Specification.new do |spec|
   spec.files = [
     'ext/pico_phone/extconf.rb',
     'ext/pico_phone/pico_phone.cpp',
+    'ext/pico_phone/carrier_mapper.h',
+    'ext/pico_phone/carrier_mapper.cc',
+    'ext/pico_phone/carrier_data.cc',
+    'ext/pico_phone/vendor_headers/phonenumbers/geocoding/area_code_map.h',
+    'ext/pico_phone/vendor_headers/phonenumbers/geocoding/mapping_file_provider.h',
+    'ext/pico_phone/vendor_headers/phonenumbers/geocoding/geocoding_data.h',
+    'ext/pico_phone/vendor_headers/phonenumbers/geocoding/carrier_data.h',
     'lib/pico_phone.rb',
     'lib/pico_phone/version.rb',
     'lib/pico_phone/phone_number.rb',

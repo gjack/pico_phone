@@ -13,6 +13,7 @@
 // any ICU header is reachable.
 #undef UChar
 #include <phonenumbers/geocoding/phonenumber_offline_geocoder.h>
+#include "carrier_mapper.h"
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
@@ -221,6 +222,29 @@ VALUE parsed_number_geo_name(int argc, VALUE *argv, VALUE self) {
   std::string description = GetGeocoder().GetDescriptionForNumber(*phone_number, locale);
 
   return rb_str_new(description.c_str(), description.size());
+}
+
+// PhoneNumberCarrierMapper mirrors PhoneNumberOfflineGeocoder's lazy
+// per-(prefix, language) file loading and caching -- see carrier_mapper.h.
+static const PhoneNumberCarrierMapper& GetCarrierMapper() {
+  static PhoneNumberCarrierMapper instance;
+  return instance;
+}
+
+VALUE parsed_number_carrier_name(int argc, VALUE *argv, VALUE self) {
+  VALUE language;
+  rb_scan_args(argc, argv, "01", &language);
+
+  std::string language_code = RB_NIL_P(language)
+    ? "en"
+    : std::string(StringValuePtr(language), RSTRING_LEN(language));
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  std::string name = GetCarrierMapper().GetNameForNumber(*phone_number, language_code);
+
+  return rb_str_new(name.c_str(), name.size());
 }
 
 Object pico_phone_is_emergency_number(Object self, String number, String region) {
@@ -865,4 +889,5 @@ void Init_pico_phone() {
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
     rb_define_method(rb_cPhoneNumber, "geo_name", reinterpret_cast<VALUE (*)(...)>(parsed_number_geo_name), -1);
+    rb_define_method(rb_cPhoneNumber, "carrier_name", reinterpret_cast<VALUE (*)(...)>(parsed_number_carrier_name), -1);
 }
