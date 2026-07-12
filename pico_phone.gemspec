@@ -30,7 +30,9 @@ Gem::Specification.new do |spec|
     'ext/pico_phone/pico_phone.cpp',
     'lib/pico_phone.rb',
     'lib/pico_phone/version.rb',
-    'lib/pico_phone/phone_number.rb'
+    'lib/pico_phone/phone_number.rb',
+    'LICENSE.txt',
+    'THIRD_PARTY_LICENSES.txt'
   ]
   spec.require_paths = ["lib"]
 
