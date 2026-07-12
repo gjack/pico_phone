@@ -15,7 +15,7 @@ end
 gemspec = Gem::Specification.load('pico_phone.gemspec')
 
 Rake::ExtensionTask.new("pico_phone", gemspec) do |ext|
-  ext.source_pattern = "*.{cpp}"
+  ext.source_pattern = "*.{cpp,cc}"
   ext.ext_dir = 'ext/pico_phone'
   ext.lib_dir = 'lib/pico_phone'
 end
