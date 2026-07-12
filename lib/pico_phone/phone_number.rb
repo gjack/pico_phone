@@ -173,6 +173,15 @@ module PicoPhone
     # @return [String]
     def carrier_name(language = "en"); end
 
+    # IANA time zone names the number's prefix belongs to. A single prefix
+    # can map to several zones (e.g. NANPA numbers span many), hence the
+    # plural. Time zone identifiers aren't translated, so unlike geo_name
+    # and carrier_name there's no language parameter. Returns an empty
+    # array when no mapping exists for the prefix, or for numbers that
+    # could not be parsed.
+    # @return [Array<String>]
+    def timezones; end
+
     # @param region [String] ISO 3166-1 alpha-2 region code
     # @return [Boolean]
     def valid_for_country?(region); end
