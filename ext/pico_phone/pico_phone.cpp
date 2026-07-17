@@ -195,6 +195,11 @@ Object pico_phone_is_alpha_number(Object self, String str) {
   return phone_util.IsAlphaNumber(str.c_str()) ? Qtrue : Qfalse;
 }
 
+int pico_phone_country_calling_code(Object self, String region) {
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  return phone_util.GetCountryCodeForRegion(std::string(region.c_str()));
+}
+
 static const ShortNumberInfo& GetShortNumberInfo() {
   static ShortNumberInfo instance;
   return instance;
@@ -868,7 +873,8 @@ void Init_pico_phone() {
     .define_singleton_method("short_number_cost", &pico_phone_short_number_cost)
     .define_singleton_method("supported_types_for_region", &pico_phone_supported_types_for_region)
     .define_singleton_method("example_number", &pico_phone_example_number)
-    .define_singleton_method("example_number_for_type", &pico_phone_example_number_for_type);
+    .define_singleton_method("example_number_for_type", &pico_phone_example_number_for_type)
+    .define_singleton_method("country_calling_code", &pico_phone_country_calling_code);
 
     rb_define_module_function(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), 1);
     rb_define_module_function(rb_mPicoPhone, "default_extension_prefix=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_extension_prefix), 1);

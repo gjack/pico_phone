@@ -252,6 +252,36 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "country_calling_code" do
+    it "returns 1 for US" do
+      expect(PicoPhone.country_calling_code("US")).to eq(1)
+    end
+
+    it "returns 1 for CA (NANP member)" do
+      expect(PicoPhone.country_calling_code("CA")).to eq(1)
+    end
+
+    it "returns 33 for FR" do
+      expect(PicoPhone.country_calling_code("FR")).to eq(33)
+    end
+
+    it "returns 55 for BR" do
+      expect(PicoPhone.country_calling_code("BR")).to eq(55)
+    end
+
+    it "returns 44 for GB" do
+      expect(PicoPhone.country_calling_code("GB")).to eq(44)
+    end
+
+    it "returns 0 for an unknown region code" do
+      expect(PicoPhone.country_calling_code("XX")).to eq(0)
+    end
+
+    it "returns 0 for an empty string" do
+      expect(PicoPhone.country_calling_code("")).to eq(0)
+    end
+  end
+
   describe PicoPhone::PhoneNumber do
     before do
       PicoPhone.default_country = "US"
