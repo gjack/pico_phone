@@ -163,6 +163,25 @@ module PicoPhone
     # @return [String]
     def geo_name(language = "en"); end
 
+    # Name of the carrier the number was originally allocated to. In
+    # countries that support mobile number portability, the number may no
+    # longer actually belong to this carrier -- this is the carrier at
+    # allocation time, not necessarily the current one. Returns an empty
+    # string when no carrier mapping exists for the prefix, or for numbers
+    # that could not be parsed.
+    # @param language [String] two- or three-letter ISO 639 language code (default: "en")
+    # @return [String]
+    def carrier_name(language = "en"); end
+
+    # IANA time zone names the number's prefix belongs to. A single prefix
+    # can map to several zones (e.g. NANPA numbers span many), hence the
+    # plural. Time zone identifiers aren't translated, so unlike geo_name
+    # and carrier_name there's no language parameter. Returns an empty
+    # array when no mapping exists for the prefix, or for numbers that
+    # could not be parsed.
+    # @return [Array<String>]
+    def timezones; end
+
     # @param region [String] ISO 3166-1 alpha-2 region code
     # @return [Boolean]
     def valid_for_country?(region); end

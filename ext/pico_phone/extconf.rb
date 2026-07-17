@@ -2,6 +2,14 @@ require "mkmf-rice"
 
 $CXXFLAGS << ' -std=c++17'
 
+# carrier_mapper.cc needs AreaCodeMap/MappingFileProvider/the
+# CountryLanguages+PrefixDescriptions structs, none of which libphonenumber
+# installs publicly (only phonenumber_offline_geocoder.h is installed) in
+# either build path below. Headers vendored verbatim under
+# vendor_headers/phonenumbers/geocoding/ -- see that directory's own
+# comments. Needed unconditionally, regardless of NATIVE_BUILD.
+$INCFLAGS << " -I#{File.expand_path("vendor_headers", __dir__)}"
+
 VENDOR_INSTALL = File.expand_path("vendor/install", __dir__)
 NATIVE_BUILD = ENV["PICO_PHONE_NATIVE_BUILD"] == "1"
 

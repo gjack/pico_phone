@@ -44,3 +44,33 @@ Benchmark.ips do |x|
 
   x.compare!
 end
+
+puts
+puts "--- carrier lookup (India, which both libraries have carrier data for) ---"
+puts
+
+carrier_number, carrier_region = "6001234567", "IN"
+
+Benchmark.ips do |x|
+  x.config(time: 3, warmup: 1)
+
+  x.report("pico_phone: carrier_name") { PicoPhone.parse(carrier_number, carrier_region).carrier_name }
+  x.report("phonelib:   carrier")      { Phonelib.parse(carrier_number, carrier_region).carrier }
+
+  x.compare!
+end
+
+puts
+puts "--- timezone lookup (208 area code, which spans multiple IANA zones) ---"
+puts
+
+tz_number = "+12082123456"
+
+Benchmark.ips do |x|
+  x.config(time: 3, warmup: 1)
+
+  x.report("pico_phone: timezones") { PicoPhone.parse(tz_number).timezones }
+  x.report("phonelib:   timezones") { Phonelib.parse(tz_number).timezones }
+
+  x.compare!
+end

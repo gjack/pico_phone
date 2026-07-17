@@ -3,6 +3,7 @@
 #include <string.h>
 #include <list>
 #include <set>
+#include <vector>
 #include <phonenumbers/phonenumber.pb.h>
 #include <phonenumbers/phonenumberutil.h>
 #include <phonenumbers/shortnumberinfo.h>
@@ -13,6 +14,8 @@
 // any ICU header is reachable.
 #undef UChar
 #include <phonenumbers/geocoding/phonenumber_offline_geocoder.h>
+#include "carrier_mapper.h"
+#include "timezone_mapper.h"
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
@@ -221,6 +224,51 @@ VALUE parsed_number_geo_name(int argc, VALUE *argv, VALUE self) {
   std::string description = GetGeocoder().GetDescriptionForNumber(*phone_number, locale);
 
   return rb_str_new(description.c_str(), description.size());
+}
+
+// PhoneNumberCarrierMapper mirrors PhoneNumberOfflineGeocoder's lazy
+// per-(prefix, language) file loading and caching -- see carrier_mapper.h.
+static const PhoneNumberCarrierMapper& GetCarrierMapper() {
+  static PhoneNumberCarrierMapper instance;
+  return instance;
+}
+
+VALUE parsed_number_carrier_name(int argc, VALUE *argv, VALUE self) {
+  VALUE language;
+  rb_scan_args(argc, argv, "01", &language);
+
+  std::string language_code = RB_NIL_P(language)
+    ? "en"
+    : std::string(StringValuePtr(language), RSTRING_LEN(language));
+
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  std::string name = GetCarrierMapper().GetNameForNumber(*phone_number, language_code);
+
+  return rb_str_new(name.c_str(), name.size());
+}
+
+// PhoneNumberTimeZonesMapper eagerly loads its single flat prefix table
+// once at construction (unlike the geocoder/carrier mappers, there's no
+// per-language dimension or lazy per-file loading to do here) -- see
+// timezone_mapper.h.
+static const PhoneNumberTimeZonesMapper& GetTimeZonesMapper() {
+  static PhoneNumberTimeZonesMapper instance;
+  return instance;
+}
+
+Array parsed_number_timezones(Object self) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+
+  std::vector<std::string> zones = GetTimeZonesMapper().GetTimeZonesForNumber(*phone_number);
+
+  Array result;
+  for (const auto& zone : zones) {
+    result.push(Object(rb_str_new(zone.c_str(), zone.size())));
+  }
+  return result;
 }
 
 Object pico_phone_is_emergency_number(Object self, String number, String region) {
@@ -860,9 +908,11 @@ void Init_pico_phone() {
     .define_method("possible_with_reason", &parsed_number_possible_with_reason)
     .define_method("geographical?", &parsed_number_geographical)
     .define_method("can_be_internationally_dialled?", &parsed_number_can_be_internationally_dialled)
-    .define_method("possible_for_type?", &parsed_number_possible_for_type);
+    .define_method("possible_for_type?", &parsed_number_possible_for_type)
+    .define_method("timezones", &parsed_number_timezones);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
     rb_define_method(rb_cPhoneNumber, "geo_name", reinterpret_cast<VALUE (*)(...)>(parsed_number_geo_name), -1);
+    rb_define_method(rb_cPhoneNumber, "carrier_name", reinterpret_cast<VALUE (*)(...)>(parsed_number_carrier_name), -1);
 }
