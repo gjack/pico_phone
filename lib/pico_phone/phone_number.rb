@@ -242,5 +242,11 @@ module PicoPhone
     # False for numbers that only work within their own country.
     # @return [Boolean]
     def can_be_internationally_dialled?; end
+
+    # Removes trailing digits until the number is valid, returning the truncated
+    # number as a new PhoneNumber. Returns nil if the number was not too long or
+    # if no valid truncation exists. Does not mutate the receiver.
+    # @return [PhoneNumber, nil]
+    def truncate; end
   end
 end
