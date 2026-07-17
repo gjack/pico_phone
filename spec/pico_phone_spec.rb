@@ -713,6 +713,28 @@ RSpec.describe PicoPhone do
       end
     end
 
+    describe "#timezones" do
+      let(:nanp_number)   { PicoPhone::PhoneNumber.new("+12082123456") }
+      let(:india_number)  { PicoPhone::PhoneNumber.new("6001234567", "IN") }
+      let(:france_number) { PicoPhone::PhoneNumber.new("+33612345678") }
+
+      it "returns a single timezone for an unambiguous prefix" do
+        expect(france_number.timezones).to eq(["Europe/Paris"])
+      end
+
+      it "returns multiple timezones when the prefix spans more than one zone" do
+        expect(nanp_number.timezones).to eq(["America/Boise", "America/Los_Angeles"])
+      end
+
+      it "falls back to the country-level entry when no finer prefix match exists" do
+        expect(india_number.timezones).to eq(["Asia/Calcutta"])
+      end
+
+      it "returns an empty array for a number that could not be parsed" do
+        expect(PicoPhone::PhoneNumber.new("garbage").timezones).to eq([])
+      end
+    end
+
     describe "#valid_for_country?" do
       let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
 
