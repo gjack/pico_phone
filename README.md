@@ -136,6 +136,26 @@ phone.carrier_name         # "" (no carrier mapping for this prefix -- number po
 
 libphonenumber has no upstream C++ port of its carrier mapper (only Java), so this is a first-party pico_phone implementation reusing the same lazy per-(country code, language) loading machinery as `geo_name` above, rather than a Ruby-level reimplementation. Unlike `geo_name`, there's no fallback to a country-level description when a prefix has no carrier data — an unmapped number just returns an empty string, matching phonelib's `carrier` semantics.
 
+### Timezone lookup
+
+```
+phone = PicoPhone.parse("+12082123456")
+
+phone.timezones   # ["America/Boise", "America/Los_Angeles"]
+
+phone = PicoPhone.parse("6001234567", "IN")
+
+phone.timezones   # ["Asia/Calcutta"]
+
+phone = PicoPhone.parse("+33612345678")
+
+phone.timezones   # ["Europe/Paris"]
+```
+
+`timezones` returns an array of [IANA time zone identifiers](https://www.iana.org/time-zones) for the number's prefix. A number can map to more than one timezone when its prefix covers a geographic area that spans multiple zones — NANP area codes in particular span many US time zones. The method returns an empty array when no mapping exists for the number's prefix.
+
+libphonenumber has no upstream C++ port of its timezone mapper (only Java), so this is a first-party pico_phone implementation using the same prefix-lookup machinery (`AreaCodeMap`) as `geo_name` and `carrier_name`. The timezone table is small enough (~86KB on disk) to load once at first call rather than lazily per-region — the initial load cost is negligible.
+
 ### Checking validity for a specific country on a parsed number
 
 The module-level `valid_for_country?` accepts a raw string. The same check is also available as an instance method once a number has been parsed.
@@ -366,6 +386,7 @@ parse + e164                        168.8k i/s     64.9k i/s   (2.6x slower)
 parse + national                    109.5k i/s     47.4k i/s   (3.6x slower)
 valid? (30 numbers, multi-region)     3.0k i/s      1.0k i/s   (3.0x slower)
 carrier_name / carrier              173.5k i/s     42.9k i/s   (4.1x slower)
+timezones / timezone                 98.1k i/s      2.5k i/s  (39.7x slower)
 ```
 
 Calling into compiled C++ beats matching regexes in Ruby, as expected.
@@ -377,25 +398,48 @@ $ bundle exec rake bench:memory
 
 Scenario                                    Peak MB
 ---------------------------------------------------
-baseline                                       22.8
-pico_phone (light)                             30.2
-pico_phone (heavy)                             40.5
-pico_phone (heavy, +geo_name)                  40.2
-pico_phone (heavy, +carrier_name)              39.4
-phonelib (light)                               24.9
-phonelib (heavy)                               32.0
-phonelib (heavy, +geo/carrier/timezone)       185.4
+baseline                                       21.4
+pico_phone (light)                             29.8
+pico_phone (heavy)                             40.7
+pico_phone (heavy, +geo_name)                  39.9
+pico_phone (heavy, +carrier_name)              39.7
+pico_phone (heavy, +timezones)                 41.1
+phonelib (light)                               24.2
+phonelib (heavy)                               31.2
+phonelib (heavy, +geo/carrier/timezone)       184.6
 ```
 
 For validate/parse/format, memory use is comparable between the two, and pico_phone isn't the clear winner: it uses somewhat *more* than phonelib in this test (partly the cost of linking in libphonenumber's offline geocoder and carrier mapper, used below). Memory stays flat under sustained load for both (no leak).
 
 phonelib's footprint balloons specifically when something calls `geo_name`, `carrier`, or `timezone`. Those lazily `Marshal.load` a ~4MB serialized data file — area-code-to-city, carrier, and timezone tables for every region in the world — into nested Ruby `Hash`/`Array`/`String` objects, then cache the whole thing in a class variable for the life of the process (see `phonelib/core.rb`, `@@phone_ext_data`).
 
-pico_phone's `geo_name` (backed by libphonenumber's C++ offline geocoder, see [Geographic description](#geographic-description)) and `carrier_name` (see [Carrier lookup](#carrier-lookup)) don't have this problem: both load their prefix data lazily, one (country code, language) file at a time, and cache only what's actually queried — calling either 600k times across 30 regions above added no measurable RSS over the no-lookup baseline (both landed at or below the plain `pico_phone (heavy)` figure, within run-to-run noise). pico_phone doesn't implement timezone lookups (libphonenumber has no C++ port of that), so that slice of phonelib's footprint remains a feature gap on pico_phone's side, not something it does more efficiently.
+pico_phone's `geo_name` (backed by libphonenumber's C++ offline geocoder, see [Geographic description](#geographic-description)) and `carrier_name` (see [Carrier lookup](#carrier-lookup)) don't have this problem: both load their prefix data lazily, one (country code, language) file at a time, and cache only what's actually queried — calling either 600k times across 30 regions above added no measurable RSS over the no-lookup baseline (both landed at or below the plain `pico_phone (heavy)` figure, within run-to-run noise). `timezones` (see [Timezone lookup](#timezone-lookup)) loads its single flat table (~86KB) once at first call and caches it for the life of the process — the one-time cost is negligible given the small table size.
 
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Running `rake spec` will run the tests. If you make any changes to the `pico_phone.cpp` file, running `rake` will compile the gem with the new changes and run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+
+### Cross-platform verification
+
+The extension links against libphonenumber, which behaves differently across platforms (system library versions, linking strategies, Abseil ABI). Before merging changes to the C++ extension, verify across all supported platforms:
+
+```bash
+# macOS arm64 — dynamic (default developer workflow)
+bundle exec rake
+
+# macOS arm64 — static (the NATIVE_BUILD path used for precompiled gems)
+PICO_PHONE_NATIVE_BUILD=1 bundle exec rake compile spec
+```
+
+For Linux, use `verify_docker.sh` (requires Docker Desktop):
+
+```bash
+bash verify_docker.sh dynamic   # Ubuntu arm64 + x86_64, dynamic linking (~2 min each)
+bash verify_docker.sh static    # Ubuntu arm64 + x86_64, NATIVE_BUILD=1 (~8–15 min each)
+bash verify_docker.sh           # all four Linux combinations
+```
+
+The static Linux runs compile abseil, protobuf, and libphonenumber from source inside the container — that's what makes them slow. The dynamic runs use Ubuntu's packaged `libphonenumber-dev` and are much faster.
 
 ## Contributing
 
