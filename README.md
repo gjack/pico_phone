@@ -385,3 +385,5 @@ Bug reports and pull requests are welcome on GitHub at https://github.com/gjack/
 ## License
 
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
+
+pico_phone's precompiled native gems compile against and statically embed several third-party libraries — libphonenumber and Abseil (Apache License 2.0), protobuf (BSD-3-Clause), ICU (Unicode License v3), and, on macOS, Boost (Boost Software License 1.0) — plus Rice (BSD-2-Clause-style), which is compiled directly in as a header-only library. Their licenses are reproduced in full in [`THIRD_PARTY_LICENSES.txt`](THIRD_PARTY_LICENSES.txt), which ships with the gem.
