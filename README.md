@@ -279,6 +279,12 @@ PicoPhone.example_number_for_type("US", :toll_free).e164   # "+18002345678"
 PicoPhone.example_number_for_type("AU", :mobile).e164      # "+61412345678"
 ```
 
+> **Note:** Some Linux distributions ship a `libphonenumber` system package compiled with
+> `USE_LITE_METADATA=ON`, which strips example number data from the library. If
+> `example_number` or `example_number_for_type` returns `nil` on Linux, this is the cause.
+> Build with `PICO_PHONE_NATIVE_BUILD=1` to use the vendored library, which always includes
+> full metadata.
+
 ### Checking if a number is possible for a specific type
 
 `possible_for_type?` checks whether a number's digit count is consistent with a given type in its region. This is a length-based check — more permissive than `type`, which classifies the number strictly.
