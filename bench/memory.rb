@@ -17,6 +17,7 @@ SCENARIOS = [
   ["pico_phone (heavy)", "bench/memory_scenarios/pico_heavy.rb",         "20000"],
   ["pico_phone (heavy, +geo_name)", "bench/memory_scenarios/pico_heavy_geo.rb", "20000"],
   ["pico_phone (heavy, +carrier_name)", "bench/memory_scenarios/pico_heavy_carrier.rb", "20000"],
+  ["pico_phone (heavy, +timezones)", "bench/memory_scenarios/pico_heavy_timezone.rb", "20000"],
   ["phonelib (light)",   "bench/memory_scenarios/phonelib_light.rb",     nil],
   ["phonelib (heavy)",   "bench/memory_scenarios/phonelib_heavy.rb",     "20000"],
   ["phonelib (heavy, +geo/carrier/timezone)", "bench/memory_scenarios/phonelib_heavy_ext.rb", "20000"],

@@ -59,3 +59,18 @@ Benchmark.ips do |x|
 
   x.compare!
 end
+
+puts
+puts "--- timezone lookup (208 area code, which spans multiple IANA zones) ---"
+puts
+
+tz_number = "+12082123456"
+
+Benchmark.ips do |x|
+  x.config(time: 3, warmup: 1)
+
+  x.report("pico_phone: timezones") { PicoPhone.parse(tz_number).timezones }
+  x.report("phonelib:   timezones") { Phonelib.parse(tz_number).timezones }
+
+  x.compare!
+end
