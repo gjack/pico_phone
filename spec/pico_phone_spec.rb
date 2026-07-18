@@ -242,6 +242,32 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "number_match" do
+    it "returns :exact_match for the same E.164 number" do
+      expect(PicoPhone.number_match("+15102745656", "+15102745656")).to eq(:exact_match)
+    end
+
+    it "returns :nsn_match for E.164 vs national format of the same number" do
+      expect(PicoPhone.number_match("+15102745656", "5102745656")).to eq(:nsn_match)
+    end
+
+    it "returns :short_nsn_match when one number is a suffix of the other's national number" do
+      expect(PicoPhone.number_match("+15102745656", "2745656")).to eq(:short_nsn_match)
+    end
+
+    it "returns :no_match for two different numbers" do
+      expect(PicoPhone.number_match("+15102745656", "+61435582008")).to eq(:no_match)
+    end
+
+    it "returns :invalid_number for unparseable input" do
+      expect(PicoPhone.number_match("+15102745656", "garbage")).to eq(:invalid_number)
+    end
+
+    it "returns :exact_match for NANP numbers with the same digits (US and CA share calling code 1)" do
+      expect(PicoPhone.number_match("+12892710892", "+12892710892")).to eq(:exact_match)
+    end
+  end
+
   describe "alpha_number?" do
     it "returns true for a vanity number containing alpha characters" do
       expect(PicoPhone.alpha_number?("1-800-FLOWERS")).to be true
@@ -962,6 +988,30 @@ RSpec.describe PicoPhone do
 
       it "returns true for a toll-free number that is accessible internationally" do
         expect(PicoPhone::PhoneNumber.new("+18005551234", "US").can_be_internationally_dialled?).to be true
+      end
+    end
+
+    describe "#match_type" do
+      let(:phone) { PicoPhone.parse("+15102745656") }
+
+      it "returns :exact_match when passed the same E.164 string" do
+        expect(phone.match_type("+15102745656")).to eq(:exact_match)
+      end
+
+      it "returns :exact_match when passed a PhoneNumber parsed from the same number" do
+        expect(phone.match_type(PicoPhone.parse("5102745656", "US"))).to eq(:exact_match)
+      end
+
+      it "returns :nsn_match when passed the national number as a string (no country code)" do
+        expect(phone.match_type("5102745656")).to eq(:nsn_match)
+      end
+
+      it "returns :no_match when passed a different number" do
+        expect(phone.match_type("+61435582008")).to eq(:no_match)
+      end
+
+      it "returns :invalid_number when passed unparseable input" do
+        expect(phone.match_type("garbage")).to eq(:invalid_number)
       end
     end
 

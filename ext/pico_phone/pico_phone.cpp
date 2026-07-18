@@ -200,6 +200,38 @@ int pico_phone_country_calling_code(Object self, String region) {
   return phone_util.GetCountryCodeForRegion(std::string(region.c_str()));
 }
 
+static VALUE match_type_to_symbol(PhoneNumberUtil::MatchType match_type) {
+  switch (match_type) {
+    case PhoneNumberUtil::INVALID_NUMBER:  return rb_id2sym(rb_intern("invalid_number"));
+    case PhoneNumberUtil::NO_MATCH:        return rb_id2sym(rb_intern("no_match"));
+    case PhoneNumberUtil::SHORT_NSN_MATCH: return rb_id2sym(rb_intern("short_nsn_match"));
+    case PhoneNumberUtil::NSN_MATCH:       return rb_id2sym(rb_intern("nsn_match"));
+    case PhoneNumberUtil::EXACT_MATCH:     return rb_id2sym(rb_intern("exact_match"));
+    default:                               return rb_id2sym(rb_intern("no_match"));
+  }
+}
+
+Object pico_phone_number_match(Object self, String first, String second) {
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  return match_type_to_symbol(phone_util.IsNumberMatchWithTwoStrings(first.c_str(), second.c_str()));
+}
+
+Object parsed_number_match_type(Object self, Object other) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  if (RTEST(rb_obj_is_kind_of(other, rb_cPhoneNumber))) {
+    PhoneNumber *other_number;
+    TypedData_Get_Struct(other, PhoneNumber, &phone_number_type, other_number);
+    return match_type_to_symbol(phone_util.IsNumberMatch(*phone_number, *other_number));
+  }
+
+  VALUE other_val = other.value();
+  std::string other_str(StringValuePtr(other_val), RSTRING_LEN(other_val));
+  return match_type_to_symbol(phone_util.IsNumberMatchWithOneString(*phone_number, other_str));
+}
+
 static const ShortNumberInfo& GetShortNumberInfo() {
   static ShortNumberInfo instance;
   return instance;
@@ -886,6 +918,7 @@ void Init_pico_phone() {
     .define_singleton_method("supported_regions", &pico_phone_supported_regions)
     .define_singleton_method("convert_alpha_characters", &pico_phone_convert_alpha_characters)
     .define_singleton_method("alpha_number?", &pico_phone_is_alpha_number)
+    .define_singleton_method("number_match", &pico_phone_number_match)
     .define_singleton_method("emergency_number?", &pico_phone_is_emergency_number)
     .define_singleton_method("short_number_valid?", &pico_phone_is_short_number_valid)
     .define_singleton_method("short_number_cost", &pico_phone_short_number_cost)
@@ -934,7 +967,8 @@ void Init_pico_phone() {
     .define_method("can_be_internationally_dialled?", &parsed_number_can_be_internationally_dialled)
     .define_method("possible_for_type?", &parsed_number_possible_for_type)
     .define_method("timezones", &parsed_number_timezones)
-    .define_method("truncate", &parsed_number_truncate);
+    .define_method("truncate", &parsed_number_truncate)
+    .define_method("match_type", &parsed_number_match_type);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);

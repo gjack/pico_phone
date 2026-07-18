@@ -85,6 +85,13 @@ module PicoPhone
   #   @param region [String] ISO 3166-1 alpha-2 region code (e.g. "US")
   #   @return [Integer] e.g. 1 for "US", 33 for "FR", 0 for unknown
 
+  # @!method self.number_match(first, second)
+  #   Compare two phone number strings and return how closely they match.
+  #   Neither string requires a region hint; E.164 input gives the most precise result.
+  #   @param first [String]
+  #   @param second [String]
+  #   @return [Symbol] :exact_match, :nsn_match, :short_nsn_match, :no_match, or :invalid_number
+
   class PhoneNumber
     # @param string [String, nil] raw phone number input
     # @param region [String, nil] ISO 3166-1 alpha-2 region hint (e.g. "US")
@@ -231,6 +238,14 @@ module PicoPhone
     # True for fixed-line numbers tied to a geographic area code.
     # @return [Boolean]
     def geographical?; end
+
+    # Compare this number against another and return how closely they match.
+    # Pass a String or a PhoneNumber. When passed a PhoneNumber, the country code
+    # stored in the proto is used for comparison, giving more precise results than
+    # a bare national-format string.
+    # @param other [String, PhoneNumber]
+    # @return [Symbol] :exact_match, :nsn_match, :short_nsn_match, :no_match, or :invalid_number
+    def match_type(other); end
 
     # True when the number's digit count is consistent with the given type in its region.
     # More permissive than {#type}: a 10-digit US number is possible for both
