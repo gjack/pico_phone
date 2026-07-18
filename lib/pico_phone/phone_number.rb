@@ -79,6 +79,12 @@ module PicoPhone
   #   @param string [String]
   #   @return [Boolean]
 
+  # @!method self.country_calling_code(region)
+  #   Returns the international calling code for a region.
+  #   Returns 0 for unknown or invalid region codes.
+  #   @param region [String] ISO 3166-1 alpha-2 region code (e.g. "US")
+  #   @return [Integer] e.g. 1 for "US", 33 for "FR", 0 for unknown
+
   class PhoneNumber
     # @param string [String, nil] raw phone number input
     # @param region [String, nil] ISO 3166-1 alpha-2 region hint (e.g. "US")
