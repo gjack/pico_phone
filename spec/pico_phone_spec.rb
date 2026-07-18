@@ -765,6 +765,30 @@ RSpec.describe PicoPhone do
       end
     end
 
+    describe "#truncate" do
+      it "returns a new PhoneNumber with trailing digits removed when the number is too long" do
+        long_number = PicoPhone::PhoneNumber.new("+151027456560000")
+        result = long_number.truncate
+        expect(result).to be_a(PicoPhone::PhoneNumber)
+        expect(result.e164).to eq("+15102745656")
+      end
+
+      it "does not mutate the receiver" do
+        long_number = PicoPhone::PhoneNumber.new("+151027456560000")
+        long_number.truncate
+        expect(long_number.e164).not_to eq("+15102745656")
+      end
+
+      it "returns nil when the number is already valid" do
+        valid_number = PicoPhone::PhoneNumber.new("+15102745656")
+        expect(valid_number.truncate).to be_nil
+      end
+
+      it "returns nil for a number that could not be parsed" do
+        expect(PicoPhone::PhoneNumber.new("garbage").truncate).to be_nil
+      end
+    end
+
     describe "#valid_for_country?" do
       let(:us_number) { PicoPhone::PhoneNumber.new("5102745656", "US") }
 

@@ -855,6 +855,24 @@ Object parsed_number_possible_for_type(Object self, Object type_sym) {
   return phone_util.IsPossibleNumberForType(*phone_number, type) ? Qtrue : Qfalse;
 }
 
+Object parsed_number_truncate(Object self) {
+  PhoneNumber *phone_number;
+  TypedData_Get_Struct(self, PhoneNumber, &phone_number_type, phone_number);
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+
+  // TruncateTooLongNumber returns true for already-valid numbers without
+  // modifying them. Guard so callers get nil for the "nothing to do" case.
+  if (phone_util.IsValidNumber(*phone_number)) return Qnil;
+
+  PhoneNumber copy(*phone_number);
+  if (!phone_util.TruncateTooLongNumber(&copy)) return Qnil;
+
+  std::string formatted;
+  phone_util.Format(copy, PhoneNumberUtil::E164, &formatted);
+  VALUE args[1] = { rb_str_new(formatted.c_str(), formatted.size()) };
+  return rb_class_new_instance(1, args, rb_cPhoneNumber);
+}
+
 extern "C"
 void Init_pico_phone() {
   rb_mPicoPhone = define_module("PicoPhone")
@@ -915,7 +933,8 @@ void Init_pico_phone() {
     .define_method("geographical?", &parsed_number_geographical)
     .define_method("can_be_internationally_dialled?", &parsed_number_can_be_internationally_dialled)
     .define_method("possible_for_type?", &parsed_number_possible_for_type)
-    .define_method("timezones", &parsed_number_timezones);
+    .define_method("timezones", &parsed_number_timezones)
+    .define_method("truncate", &parsed_number_truncate);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);
