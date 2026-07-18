@@ -14,13 +14,18 @@
 // any ICU header is reachable.
 #undef UChar
 #include <phonenumbers/geocoding/phonenumber_offline_geocoder.h>
+#include <phonenumbers/phonenumbermatcher.h>
+#include <phonenumbers/phonenumbermatch.h>
 #include "carrier_mapper.h"
 #include "timezone_mapper.h"
+
+#include <climits>
 
 using namespace Rice;
 using namespace i18n::phonenumbers;
 
 static VALUE rb_cPhoneNumber;
+static VALUE rb_cPhoneNumberMatch;
 static VALUE rb_mPicoPhone;
 
 size_t phone_number_size(const void *data) { return sizeof(PhoneNumber); }
@@ -230,6 +235,75 @@ Object parsed_number_match_type(Object self, Object other) {
   VALUE other_val = other.value();
   std::string other_str(StringValuePtr(other_val), RSTRING_LEN(other_val));
   return match_type_to_symbol(phone_util.IsNumberMatchWithOneString(*phone_number, other_str));
+}
+
+static PhoneNumberMatcher::Leniency symbol_to_leniency(VALUE sym) {
+  ID id = rb_to_id(sym);
+  if (id == rb_intern("possible"))        return PhoneNumberMatcher::POSSIBLE;
+  if (id == rb_intern("strict_grouping")) return PhoneNumberMatcher::STRICT_GROUPING;
+  if (id == rb_intern("exact_grouping"))  return PhoneNumberMatcher::EXACT_GROUPING;
+  return PhoneNumberMatcher::VALID;
+}
+
+Object phone_number_match_start(Object self) {
+  return rb_ivar_get(self, rb_intern("@start"));
+}
+
+Object phone_number_match_end_index(Object self) {
+  return rb_ivar_get(self, rb_intern("@end_index"));
+}
+
+Object phone_number_match_raw_string(Object self) {
+  return rb_ivar_get(self, rb_intern("@raw_string"));
+}
+
+Object phone_number_match_number(Object self) {
+  return rb_ivar_get(self, rb_intern("@number"));
+}
+
+VALUE pico_phone_find_numbers(int argc, VALUE *argv, VALUE self) {
+  VALUE text, region, kwargs;
+  rb_scan_args(argc, argv, "2:", &text, &region, &kwargs);
+
+  ID kwarg_ids[1] = { rb_intern("leniency") };
+  VALUE kwarg_vals[1];
+  rb_get_kwargs(kwargs, kwarg_ids, 0, 1, kwarg_vals);
+
+  PhoneNumberMatcher::Leniency leniency = PhoneNumberMatcher::VALID;
+  if (kwarg_vals[0] != Qundef) {
+    leniency = symbol_to_leniency(kwarg_vals[0]);
+  }
+
+  std::string text_str(StringValuePtr(text), RSTRING_LEN(text));
+  std::string region_str(StringValuePtr(region), RSTRING_LEN(region));
+
+  const PhoneNumberUtil &phone_util(*PhoneNumberUtil::GetInstance());
+  PhoneNumberMatcher matcher(phone_util, text_str, region_str, leniency, INT_MAX);
+
+  Array result;
+  PhoneNumberMatch match;
+  while (matcher.HasNext()) {
+    matcher.Next(&match);
+
+    int start_pos = match.start();
+    int end_pos = match.end();
+    std::string raw = match.raw_string();
+
+    std::string e164;
+    phone_util.Format(match.number(), PhoneNumberUtil::E164, &e164);
+    VALUE num_args[1] = { rb_str_new(e164.c_str(), e164.size()) };
+    VALUE number_obj = rb_class_new_instance(1, num_args, rb_cPhoneNumber);
+
+    VALUE match_obj = rb_obj_alloc(rb_cPhoneNumberMatch);
+    rb_ivar_set(match_obj, rb_intern("@start"), INT2FIX(start_pos));
+    rb_ivar_set(match_obj, rb_intern("@end_index"), INT2FIX(end_pos));
+    rb_ivar_set(match_obj, rb_intern("@raw_string"), rb_str_new(raw.c_str(), raw.size()));
+    rb_ivar_set(match_obj, rb_intern("@number"), number_obj);
+
+    result.push(Object(match_obj));
+  }
+
+  return result;
 }
 
 static const ShortNumberInfo& GetShortNumberInfo() {
@@ -927,6 +1001,8 @@ void Init_pico_phone() {
     .define_singleton_method("example_number_for_type", &pico_phone_example_number_for_type)
     .define_singleton_method("country_calling_code", &pico_phone_country_calling_code);
 
+    rb_define_singleton_method(rb_mPicoPhone, "find_numbers", reinterpret_cast<VALUE (*)(...)>(pico_phone_find_numbers), -1);
+
     rb_define_module_function(rb_mPicoPhone, "default_country=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_country), 1);
     rb_define_module_function(rb_mPicoPhone, "default_extension_prefix=", reinterpret_cast<VALUE (*)(...)>(pico_phone_set_default_extension_prefix), 1);
     rb_define_singleton_method(rb_mPicoPhone, "parse", reinterpret_cast<VALUE (*)(...)>(pico_phone_phone_number_parse), -1);
@@ -969,6 +1045,12 @@ void Init_pico_phone() {
     .define_method("timezones", &parsed_number_timezones)
     .define_method("truncate", &parsed_number_truncate)
     .define_method("match_type", &parsed_number_match_type);
+
+    rb_cPhoneNumberMatch = define_class_under(rb_mPicoPhone, "PhoneNumberMatch")
+      .define_method("start", &phone_number_match_start)
+      .define_method("end_index", &phone_number_match_end_index)
+      .define_method("raw_string", &phone_number_match_raw_string)
+      .define_method("number", &phone_number_match_number);
 
     rb_define_alloc_func(rb_cPhoneNumber, rb_phone_number_alloc);
     rb_define_method(rb_cPhoneNumber, "initialize", reinterpret_cast<VALUE (*)(...)>(phone_number_initialize), -1);

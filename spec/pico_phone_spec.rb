@@ -268,6 +268,60 @@ RSpec.describe PicoPhone do
     end
   end
 
+  describe "find_numbers" do
+    let(:text) { "Call me at +1 425 882-8080 or (650) 253-0000 for details." }
+
+    it "returns an array of PhoneNumberMatch objects" do
+      expect(PicoPhone.find_numbers(text, "US")).to all(be_a(PicoPhone::PhoneNumberMatch))
+    end
+
+    it "finds all phone numbers in the text" do
+      expect(PicoPhone.find_numbers(text, "US").size).to eq(2)
+    end
+
+    it "returns an empty array when no numbers are found" do
+      expect(PicoPhone.find_numbers("no numbers here", "US")).to eq([])
+    end
+
+    it "returns the correct start offset for each match" do
+      matches = PicoPhone.find_numbers(text, "US")
+      expect(matches.first.start).to eq(11)
+    end
+
+    it "returns the correct end_index offset for each match" do
+      matches = PicoPhone.find_numbers(text, "US")
+      expect(matches.first.end_index).to eq(26)
+    end
+
+    it "returns the matched substring as raw_string" do
+      matches = PicoPhone.find_numbers(text, "US")
+      expect(matches.first.raw_string).to eq("+1 425 882-8080")
+    end
+
+    it "returns a usable PhoneNumber from number" do
+      matches = PicoPhone.find_numbers(text, "US")
+      expect(matches.first.number).to be_a(PicoPhone::PhoneNumber)
+      expect(matches.first.number.e164).to eq("+14258828080")
+    end
+
+    it "finds E.164 and national-format numbers in the same text" do
+      mixed = "Reach us at +14258828080 or 6502530000."
+      matches = PicoPhone.find_numbers(mixed, "US")
+      e164s = matches.map { |m| m.number.e164 }
+      expect(e164s).to include("+14258828080", "+16502530000")
+    end
+
+    it "accepts a leniency keyword argument" do
+      expect(PicoPhone.find_numbers(text, "US", leniency: :possible).size).to be >= 2
+    end
+
+    it "returns fewer matches at stricter leniency levels" do
+      possible_count = PicoPhone.find_numbers(text, "US", leniency: :possible).size
+      exact_count    = PicoPhone.find_numbers(text, "US", leniency: :exact_grouping).size
+      expect(possible_count).to be >= exact_count
+    end
+  end
+
   describe "alpha_number?" do
     it "returns true for a vanity number containing alpha characters" do
       expect(PicoPhone.alpha_number?("1-800-FLOWERS")).to be true
