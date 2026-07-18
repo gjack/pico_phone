@@ -104,6 +104,32 @@ phone.area_code        # "" (AU mobile numbers have no geographical area code)
 phone.local_number     # "435582008" (full national number when there is no area code)
 ```
 
+`country_calling_code` returns the international calling code for a region code, without needing to parse a number first. Returns `0` for unknown or invalid region codes.
+
+```
+PicoPhone.country_calling_code("US")  # 1
+PicoPhone.country_calling_code("FR")  # 33
+PicoPhone.country_calling_code("BR")  # 55
+PicoPhone.country_calling_code("CA")  # 1  (NANP — same calling code as US)
+PicoPhone.country_calling_code("XX")  # 0  (unknown region)
+```
+
+### Truncating too-long numbers
+
+`truncate` removes trailing digits from a number that is too long until a valid number is found. Returns a new `PhoneNumber` on success, or `nil` when the number was already valid or no valid truncation exists. The receiver is never mutated.
+
+```
+phone = PicoPhone.parse("+151027456560000", "US")
+phone.valid?    # false
+
+truncated = phone.truncate
+truncated.e164  # "+15102745656"
+truncated.valid?  # true
+
+PicoPhone.parse("+15102745656").truncate  # nil  (already valid)
+PicoPhone.parse("garbage").truncate       # nil  (cannot be truncated)
+```
+
 ### Geographic description
 
 ```
@@ -210,6 +236,76 @@ phone = PicoPhone.parse("+15102745656", "US")
 phone.mobile_dialing_format("US")  # "+1 510-274-5656"
 phone.mobile_dialing_format("GB")  # "+1 510-274-5656"
 ```
+
+### Comparing phone numbers
+
+`number_match` compares two phone number strings and returns how closely they match. E.164 input gives the most precise result; national-format strings without a country code may return `:nsn_match` where a full E.164 comparison would return `:exact_match`.
+
+```
+PicoPhone.number_match("+15102745656", "+15102745656")  # :exact_match
+PicoPhone.number_match("+15102745656", "5102745656")    # :nsn_match   (no country code in second arg)
+PicoPhone.number_match("+15102745656", "2745656")       # :short_nsn_match
+PicoPhone.number_match("+15102745656", "+61435582008")  # :no_match
+PicoPhone.number_match("+15102745656", "garbage")       # :invalid_number
+```
+
+`match_type` is the instance-method equivalent. It accepts either a string or a `PhoneNumber`. When passed a `PhoneNumber`, the country code already embedded in the parsed object is used, which gives `:exact_match` where a bare national-format string would give `:nsn_match`.
+
+```
+phone = PicoPhone.parse("+15102745656")
+
+phone.match_type("+15102745656")                      # :exact_match
+phone.match_type(PicoPhone.parse("5102745656", "US")) # :exact_match  (country code resolved at parse time)
+phone.match_type("5102745656")                        # :nsn_match    (string has no country code)
+phone.match_type("+61435582008")                      # :no_match
+```
+
+Possible return values are `:exact_match`, `:nsn_match`, `:short_nsn_match`, `:no_match`, and `:invalid_number`.
+
+### Finding phone numbers in text
+
+`find_numbers` scans an arbitrary block of text and returns every phone number found, along with its position and the raw substring that was matched. It uses libphonenumber's `PhoneNumberMatcher` internally.
+
+```
+matches = PicoPhone.find_numbers("Call me at +1 425 882-8080 or (650) 253-0000 for details.", "US")
+
+matches.size              # 2
+matches.first.raw_string  # "+1 425 882-8080"
+matches.first.start       # 11
+matches.first.end_index   # 26
+matches.first.number      # #<PicoPhone::PhoneNumber>
+matches.first.number.e164 # "+14258828080"
+```
+
+Each element in the returned array is a `PicoPhone::PhoneNumberMatch` with four methods:
+
+| Method | Returns |
+|--------|---------|
+| `start` | Byte offset of the match start in the searched text |
+| `end_index` | Exclusive byte offset of the match end (`text[start...end_index]` is the match) |
+| `raw_string` | The matched substring exactly as it appears in the text |
+| `number` | A fully-parsed `PicoPhone::PhoneNumber` |
+
+The `leniency` keyword argument controls how strictly a candidate is required to look like a phone number before being included. Defaults to `:valid`.
+
+```
+# :possible — accept any number-like sequence with a plausible digit count
+PicoPhone.find_numbers(text, "US", leniency: :possible)
+
+# :valid (default) — must be a valid number for its region
+PicoPhone.find_numbers(text, "US", leniency: :valid)
+
+# :strict_grouping — must also be formatted in a regionally plausible grouping
+PicoPhone.find_numbers(text, "US", leniency: :strict_grouping)
+
+# :exact_grouping — must match exactly how libphonenumber would format it
+PicoPhone.find_numbers(text, "US", leniency: :exact_grouping)
+```
+
+> **Note:** Some Linux distributions ship a `libphonenumber` system package compiled with
+> `USE_ALTERNATE_FORMATS=OFF`, which disables alternate-format pattern recognition used by
+> `find_numbers`. If the method returns fewer matches than expected on Linux, building with
+> `PICO_PHONE_NATIVE_BUILD=1` uses the vendored library, which always enables alternate formats.
 
 ### Finding possible or valid countries for a phone number
 

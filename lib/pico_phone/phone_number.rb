@@ -92,6 +92,33 @@ module PicoPhone
   #   @param second [String]
   #   @return [Symbol] :exact_match, :nsn_match, :short_nsn_match, :no_match, or :invalid_number
 
+  # @!method self.find_numbers(text, region, leniency: :valid)
+  #   Scan a block of text and return every phone number found in it.
+  #   @param text [String] arbitrary text to search (must be valid UTF-8)
+  #   @param region [String] ISO 3166-1 alpha-2 default region for numbers without a country code
+  #   @param leniency [Symbol] :possible, :valid (default), :strict_grouping, or :exact_grouping
+  #   @return [Array<PhoneNumberMatch>]
+
+  # Represents a single phone number match found by {PicoPhone.find_numbers}.
+  class PhoneNumberMatch
+    # Byte offset of the match start within the searched text.
+    # @return [Integer]
+    def start; end
+
+    # Exclusive byte offset of the match end within the searched text.
+    # The matched substring is text[start...end_index].
+    # @return [Integer]
+    def end_index; end
+
+    # The substring of the searched text that was matched.
+    # @return [String]
+    def raw_string; end
+
+    # The parsed phone number.
+    # @return [PhoneNumber]
+    def number; end
+  end
+
   class PhoneNumber
     # @param string [String, nil] raw phone number input
     # @param region [String, nil] ISO 3166-1 alpha-2 region hint (e.g. "US")
