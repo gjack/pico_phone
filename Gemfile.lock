@@ -28,7 +28,7 @@ GEM
       rake
     reline (0.6.3)
       io-console (~> 0.5)
-    rice (4.5.0)
+    rice (4.12.0)
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
