@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -14,18 +15,50 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
       - name: Install macOS build dependencies
         run: brew install boost icu4c@78
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
           key: native-deps-darwin-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
-      - name: Build native gem
-        run: bundle exec rake native:build
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.1)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.2)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.3)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.4)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 4.0)
+        run: bundle exec rake native:compile
+
+      - name: Package fat native gem
+        run: bundle exec rake native:package
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: gem-arm64-darwin
@@ -36,18 +69,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
       - name: Install system build dependencies
         run: sudo apt-get install -y cmake libicu-dev
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
           key: native-deps-linux-x86_64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
-      - name: Build native gem
-        run: bundle exec rake native:build
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.1)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.2)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.3)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.4)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 4.0)
+        run: bundle exec rake native:compile
+
+      - name: Package fat native gem
+        run: bundle exec rake native:package
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: gem-x86_64-linux
@@ -58,18 +123,50 @@ jobs:
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
-        with:
-          ruby-version: '3.3'
-          bundler-cache: true
       - name: Install system build dependencies
         run: sudo apt-get install -y cmake libicu-dev
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
           key: native-deps-linux-aarch64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
-      - name: Build native gem
-        run: bundle exec rake native:build
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.1'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.1)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.2)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.3)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '3.4'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 3.4)
+        run: bundle exec rake native:compile
+
+      - uses: ruby/setup-ruby@003a5c4d8d6321bd302e38f6f0ec593f77f06600 # v1.319.0
+        with:
+          ruby-version: '4.0'
+          bundler-cache: true
+      - name: Compile native extension (Ruby 4.0)
+        run: bundle exec rake native:compile
+
+      - name: Package fat native gem
+        run: bundle exec rake native:package
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: gem-aarch64-linux
@@ -77,6 +174,7 @@ jobs:
 
   release:
     name: Push to RubyGems
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [build-native-darwin, build-native-linux, build-native-linux-arm]
     runs-on: ubuntu-latest
     permissions:

@@ -1,5 +1,7 @@
 *.bundle
+*.so
 *.o
+lib/pico_phone/[0-9]*/
 /.bundle/
 /.yardoc
 /_yardoc/

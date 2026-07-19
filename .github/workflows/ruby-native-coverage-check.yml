@@ -1,0 +1,80 @@
+name: Check Ruby native gem ABI coverage
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Compare native build coverage against released Ruby minors
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # release.yml compiles the native extension once per Ruby minor actually tested in
+          # ci.yml (build Ruby always equals run Ruby, by design -- a binary built on one minor
+          # can silently misbehave, not just fail to load, on a different minor, since Rice's
+          # header-only C++ bindings can bake in that minor's internal struct layout). So this
+          # check flags any released Ruby minor with no matching native build bucket at all --
+          # both a brand new major series and a routine new minor within an existing major are
+          # equally relevant here, unlike a coarser major-only bucketing scheme would be.
+          covered_minors=$(grep -oP "(?<=ruby-version: ')[0-9]+\.[0-9]+(?=')" .github/workflows/release.yml | sort -Vu)
+
+          # Ruby's git tag format changed starting with 4.0: v{major}_{minor}_{patch} through the
+          # 3.x series (e.g. v3_4_10), but v{major}.{minor}.{patch} from 4.0 onward (e.g. v4.0.6).
+          # Both must be matched or new 4.x+ releases would be silently invisible to this check.
+          released_minors=$(gh api repos/ruby/ruby/tags --paginate --jq '.[].name' \
+            | grep -E '^v[0-9]+(_[0-9]+_[0-9]+|\.[0-9]+\.[0-9]+)$' \
+            | sed -E 's/^v([0-9]+)[_.]([0-9]+)[_.][0-9]+$/\1.\2/' \
+            | sort -Vu)
+
+          # Only flag releases NEWER than what's already covered per major (a genuinely new
+          # release outpacing coverage), not older releases below whatever floor release.yml
+          # already settled on (e.g. Ruby 3.0 has never been built even though the gemspec's
+          # required_ruby_version technically allows it -- that's a separate, pre-existing,
+          # already-accepted inconsistency, not something this check should re-flag every week).
+          stale=""
+          for major in $(echo "$covered_minors" | cut -d. -f1 | sort -un); do
+            max_covered=$(echo "$covered_minors" | awk -F. -v M="$major" '$1==M {print $2}' | sort -n | tail -1)
+            max_released=$(echo "$released_minors" | awk -F. -v M="$major" '$1==M {print $2}' | sort -n | tail -1)
+            if [ -n "$max_released" ] && [ "$max_released" -gt "$max_covered" ]; then
+              stale="${stale}- Ruby ${major}.${max_released} has been released but release.yml's newest native build bucket for ${major}.x is only ${major}.${max_covered}\n"
+            fi
+          done
+
+          for major in $(echo "$released_minors" | cut -d. -f1 | sort -un); do
+            [ "$major" -lt 3 ] && continue   # below required_ruby_version, irrelevant
+            if ! grep -q "^${major}\." <<< "$covered_minors"; then
+              latest=$(echo "$released_minors" | awk -F. -v M="$major" '$1==M' | sort -Vu | tail -1)
+              stale="${stale}- Ruby ${major}.x has been released (latest: ${major}.${latest#*.}) but release.yml has no native build bucket for it at all\n"
+            fi
+          done
+
+          if [ -z "$stale" ]; then
+            echo "All released Ruby minors have native build coverage."
+            exit 0
+          fi
+
+          printf 'Uncovered Ruby minors found:\n%b\n' "$stale"
+
+          title="Native gem builds may not cover a newly released Ruby version"
+          body=$(printf 'The following Ruby minors have released versions but no corresponding native build bucket in `.github/workflows/release.yml`:\n\n%bAdd a `ruby-version` entry (with matching compile step) for the new minor to each `build-native-*` job, and to `ci.yml`'"'"'s test matrix, then verify the fat native gem builds and loads correctly.' "$stale")
+
+          existing=$(gh issue list --state open --json number,title --jq '.[] | select(.title=="'"$title"'") | .number' | head -1)
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "$body"
+          else
+            gh issue create --title "$title" --body "$body"
+          fi

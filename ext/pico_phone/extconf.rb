@@ -115,4 +115,15 @@ else
   end
 end
 
+# Ruby builds with --enable-shared (used by ruby/setup-ruby, official Docker images, Homebrew, and
+# most system packages) make mkmf hard-link every extension against a build-specific libruby.so/
+# .dylib via LIBRUBYARG_SHARED, on top of -Wl,-undefined,dynamic_lookup which alone is already
+# sufficient for symbol resolution at load time. On macOS that dependency is an absolute path tied
+# to wherever that particular Ruby happened to be installed -- which cannot exist on any other
+# machine, breaking every precompiled native gem once it's moved off the machine that built it,
+# regardless of Ruby version. Drop it so the compiled extension only depends on libraries it
+# actually needs.
+$LIBRUBYARG_SHARED = ""
+$LIBRUBYARG = ""
+
 create_makefile("pico_phone/pico_phone")
