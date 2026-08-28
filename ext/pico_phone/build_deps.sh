@@ -8,9 +8,9 @@ INSTALL_DIR="$SCRIPT_DIR/vendor/install"
 
 mkdir -p "$SRC_DIR" "$BUILD_DIR" "$INSTALL_DIR"
 
-ABSEIL_VERSION="20260526.0"
+ABSEIL_VERSION="20260817.0"
 ABSEIL_URL="https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz"
-ABSEIL_SHA256="6e1aee535473414164bf83e4ebc40240dec71a4701f8a642d906e95bea1aea0c"
+ABSEIL_SHA256="f7e05179df39c45434cad433f5783840bb3788ef322976f9138bc6b72b3a107d"
 ABSEIL_TARBALL="$SRC_DIR/abseil-${ABSEIL_VERSION}.tar.gz"
 ABSEIL_SRC="$BUILD_DIR/abseil-cpp-${ABSEIL_VERSION}"
 ABSEIL_BUILD="$BUILD_DIR/abseil-build"
@@ -63,9 +63,9 @@ fi
 # protobuf
 # ---------------------------------------------------------------------------
 
-PROTOBUF_VERSION="35.1"
+PROTOBUF_VERSION="36.0"
 PROTOBUF_URL="https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz"
-PROTOBUF_SHA256="f0b6838e7522a8da96126d487068c959bc624926368f3024ac8fd03abd0a1ac4"
+PROTOBUF_SHA256="399931c793f4ac6db81045b00b06dd07c877b48aeecf36c797f65c541fb533e7"
 PROTOBUF_TARBALL="$SRC_DIR/protobuf-${PROTOBUF_VERSION}.tar.gz"
 PROTOBUF_SRC="$BUILD_DIR/protobuf-${PROTOBUF_VERSION}"
 PROTOBUF_BUILD="$BUILD_DIR/protobuf-build"
@@ -118,9 +118,9 @@ fi
 # libphonenumber
 # ---------------------------------------------------------------------------
 
-LIBPHONE_VERSION="9.0.37"
+LIBPHONE_VERSION="9.0.38"
 LIBPHONE_URL="https://github.com/google/libphonenumber/archive/refs/tags/v${LIBPHONE_VERSION}.tar.gz"
-LIBPHONE_SHA256="4bd34bc3aec5a89dc9035d15aaf2256c5e8f7e0524e6eb3e7bac1e811987c230"
+LIBPHONE_SHA256="75e0a15fdc8fab9efc8a101d1d36ba3866c407889faae6c025e6aac58957da77"
 LIBPHONE_TARBALL="$SRC_DIR/libphonenumber-${LIBPHONE_VERSION}.tar.gz"
 LIBPHONE_SRC="$BUILD_DIR/libphonenumber-${LIBPHONE_VERSION}"
 LIBPHONE_BUILD="$BUILD_DIR/libphonenumber-build"
