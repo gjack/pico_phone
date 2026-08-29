@@ -18,7 +18,7 @@ GEM
       ffi (~> 1.0)
     io-console (0.8.2)
     method_source (1.1.0)
-    phonelib (0.10.25)
+    phonelib (0.10.27)
     pry (0.16.0)
       coderay (~> 1.1)
       method_source (~> 1.0)
