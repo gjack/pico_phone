@@ -7,6 +7,17 @@ name: Native gem (musl) — experimental
 # a real release. Once the approach is trusted, folding it into release.yml
 # (and wiring its output gems into the `release` job's `needs:`) is a
 # follow-up, deliberately not done here.
+#
+# Deliberately does NOT use GitHub Actions' job-level `container:` field --
+# JavaScript-based actions (checkout, upload-artifact, download-artifact) are
+# only supported inside Alpine containers on x64 runners, not on ARM64 hosted
+# runners ("JavaScript Actions in Alpine containers are only supported on x64
+# Linux runners"). So every job runs on the bare (glibc) runner, where those
+# actions work on both architectures, and drives Alpine itself via `docker
+# run` with the checked-out workspace bind-mounted in. The Alpine container
+# runs as root, so anything it writes into that bind mount is chown'd back to
+# the runner's own user before a host-side step (upload-artifact, or the next
+# docker run) needs to read it.
 
 on:
   workflow_dispatch:
@@ -24,14 +35,16 @@ jobs:
           - arch: aarch64
             runs_on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs_on }}
-    container:
-      image: ruby:3.3-alpine
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install build toolchain
-        run: apk add --no-cache build-base cmake bash curl tar git patch pkgconfig linux-headers python3
-      - name: Build vendored dependencies (static ICU + abseil + protobuf + libphonenumber)
-        run: bash ext/pico_phone/build_deps.sh
+      - name: Build vendored dependencies (static ICU + abseil + protobuf + libphonenumber) in Alpine
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.3-alpine sh -c '
+            set -e
+            apk add --no-cache build-base cmake bash curl tar patch pkgconfig linux-headers python3
+            bash ext/pico_phone/build_deps.sh
+          '
+          sudo chown -R "$(id -u):$(id -g)" ext/pico_phone/vendor
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: musl-vendor-install-${{ matrix.arch }}
@@ -52,37 +65,33 @@ jobs:
           - arch: aarch64
             runs_on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs_on }}
-    container:
-      image: ruby:${{ matrix.ruby }}-alpine
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install build toolchain
-        run: apk add --no-cache build-base bash linux-headers
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           name: musl-vendor-install-${{ matrix.arch }}
           path: ext/pico_phone/vendor/install
-      - name: Install gem dependencies
+      - name: Compile, smoke-test, and spec-test in Alpine
         run: |
-          gem install bundler --no-document
-          bundle config set --local path vendor/bundle
-          bundle install
-      - name: Compile native extension
-        env:
-          PICO_PHONE_NATIVE_BUILD: "1"
-        run: bundle exec rake native:compile
-      - name: Functional smoke check (parse + ICU-dependent geocoder fallback)
-        run: |
-          bundle exec ruby -e '
-            require "pico_phone"
-            n = PicoPhone.parse("+14155552671")
-            raise "not valid" unless n.valid?
-            raise "unexpected geo_name: #{n.geo_name.inspect}" unless n.geo_name == "San Francisco, CA"
-            raise "ICU locale fallback broken: #{n.geo_name(%q(ja)).inspect}" unless n.geo_name("ja") == "アメリカ合衆国"
-            puts "OK"
+          docker run --rm -v "$PWD":/work -w /work "ruby:${{ matrix.ruby }}-alpine" sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+            bundle exec ruby -e "
+              require %q(pico_phone)
+              n = PicoPhone.parse(%q(+14155552671))
+              raise %q(not valid) unless n.valid?
+              raise %q(unexpected geo_name: ) + n.geo_name.inspect unless n.geo_name == %q(San Francisco, CA)
+              raise %q(ICU locale fallback broken: ) + n.geo_name(%q(ja)).inspect unless n.geo_name(%q(ja)) == %q(アメリカ合衆国)
+              puts %q(OK)
+            "
+            bundle exec rspec
           '
-      - name: Run spec suite
-        run: bundle exec rspec
+          sudo chown -R "$(id -u):$(id -g)" "lib/pico_phone/${{ matrix.ruby }}"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: musl-binary-${{ matrix.arch }}-${{ matrix.ruby }}
@@ -102,17 +111,8 @@ jobs:
           - arch: aarch64
             runs_on: ubuntu-24.04-arm
     runs-on: ${{ matrix.runs_on }}
-    container:
-      image: ruby:3.3-alpine
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Install build toolchain
-        run: apk add --no-cache build-base bash linux-headers
-      - name: Install gem dependencies
-        run: |
-          gem install bundler --no-document
-          bundle config set --local path vendor/bundle
-          bundle install
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           pattern: musl-binary-${{ matrix.arch }}-*
@@ -127,8 +127,17 @@ jobs:
             rmdir "$d"
           done
           find lib/pico_phone -name pico_phone.so
-      - name: Package fat native gem
-        run: bundle exec rake native:package
+      - name: Package fat native gem in Alpine
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.3-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            bundle exec rake native:package
+          '
+          sudo chown -R "$(id -u):$(id -g)" pkg
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: musl-gem-${{ matrix.arch }}
