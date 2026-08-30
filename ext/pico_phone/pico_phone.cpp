@@ -334,7 +334,12 @@ VALUE parsed_number_geo_name(int argc, VALUE *argv, VALUE self) {
   Locale locale(language_code.c_str());
   std::string description = GetGeocoder().GetDescriptionForNumber(*phone_number, locale);
 
-  return rb_str_new(description.c_str(), description.size());
+  // Descriptions come from libphonenumber's per-language data files and can contain
+  // non-ASCII text (e.g. Japanese, accented Latin script) -- rb_str_new tags the
+  // result ASCII-8BIT, which silently breaks == against a UTF-8 literal for any
+  // non-ASCII content (7-bit-ASCII content is unaffected, since ASCII-8BIT and
+  // UTF-8 are equality-compatible there, which is why this went unnoticed).
+  return rb_utf8_str_new(description.c_str(), description.size());
 }
 
 // PhoneNumberCarrierMapper mirrors PhoneNumberOfflineGeocoder's lazy
@@ -357,7 +362,8 @@ VALUE parsed_number_carrier_name(int argc, VALUE *argv, VALUE self) {
 
   std::string name = GetCarrierMapper().GetNameForNumber(*phone_number, language_code);
 
-  return rb_str_new(name.c_str(), name.size());
+  // See the matching comment in parsed_number_geo_name above -- same issue, same fix.
+  return rb_utf8_str_new(name.c_str(), name.size());
 }
 
 // PhoneNumberTimeZonesMapper eagerly loads its single flat prefix table

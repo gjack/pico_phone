@@ -800,6 +800,14 @@ RSpec.describe PicoPhone do
       it "returns an empty string for a number that could not be parsed" do
         expect(PicoPhone::PhoneNumber.new("garbage").geo_name).to eq("")
       end
+
+      it "returns a properly UTF-8 encoded string, not ASCII-8BIT" do
+        expect(us_number.geo_name("ja").encoding).to eq(Encoding::UTF_8)
+      end
+
+      it "returns correctly comparable non-ASCII text (e.g. the ICU-translated country name fallback)" do
+        expect(us_number.geo_name("ja")).to eq("アメリカ合衆国")
+      end
     end
 
     describe "#carrier_name" do
@@ -820,6 +828,10 @@ RSpec.describe PicoPhone do
 
       it "returns an empty string for a number that could not be parsed" do
         expect(PicoPhone::PhoneNumber.new("garbage").carrier_name).to eq("")
+      end
+
+      it "returns a properly UTF-8 encoded string, not ASCII-8BIT" do
+        expect(in_number.carrier_name.encoding).to eq(Encoding::UTF_8)
       end
     end
 
