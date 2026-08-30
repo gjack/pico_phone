@@ -172,10 +172,201 @@ jobs:
           name: gem-aarch64-linux
           path: pkg/pico_phone-*.gem
 
+  # These two musl jobs deliberately don't use GitHub Actions' job-level `container:`
+  # field, unlike how you might naively adapt the pattern above -- JavaScript-based
+  # actions (checkout, cache, upload-artifact) aren't supported inside an Alpine
+  # container on an ARM64 hosted runner, only on x64 ("JavaScript Actions in Alpine
+  # containers are only supported on x64 Linux runners"). So both run on the bare
+  # (glibc) runner and drive Alpine themselves via `docker run` with the workspace
+  # bind-mounted in. The Alpine container runs as root, so anything it writes into
+  # that bind mount is chown'd back to the runner's own user (GitHub-hosted Ubuntu
+  # runners have passwordless sudo) before a host-side step needs to read it.
+  build-native-musl-x86_64:
+    name: Native gem — x86_64-linux-musl
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ext/pico_phone/vendor/install
+          key: native-deps-musl-x86_64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
+
+      - name: Compile native extension (Ruby 3.1)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.1-alpine sh -c '
+            set -e
+            apk add --no-cache build-base cmake bash curl tar patch pkgconfig linux-headers python3
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" ext/pico_phone/vendor lib/pico_phone/3.1
+
+      - name: Compile native extension (Ruby 3.2)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.2-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/3.2
+
+      - name: Compile native extension (Ruby 3.3)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.3-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/3.3
+
+      - name: Compile native extension (Ruby 3.4)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.4-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/3.4
+
+      - name: Compile native extension (Ruby 4.0)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:4.0-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/4.0
+
+      - name: Package fat native gem
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.3-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            bundle exec rake native:package
+          '
+          sudo chown -R "$(id -u):$(id -g)" pkg
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gem-x86_64-linux-musl
+          path: pkg/pico_phone-*.gem
+
+  build-native-musl-aarch64:
+    name: Native gem — aarch64-linux-musl
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ext/pico_phone/vendor/install
+          key: native-deps-musl-aarch64-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
+
+      - name: Compile native extension (Ruby 3.1)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.1-alpine sh -c '
+            set -e
+            apk add --no-cache build-base cmake bash curl tar patch pkgconfig linux-headers python3
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" ext/pico_phone/vendor lib/pico_phone/3.1
+
+      - name: Compile native extension (Ruby 3.2)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.2-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/3.2
+
+      - name: Compile native extension (Ruby 3.3)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.3-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/3.3
+
+      - name: Compile native extension (Ruby 3.4)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.4-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/3.4
+
+      - name: Compile native extension (Ruby 4.0)
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:4.0-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            export PICO_PHONE_NATIVE_BUILD=1
+            bundle exec rake native:compile
+          '
+          sudo chown -R "$(id -u):$(id -g)" lib/pico_phone/4.0
+
+      - name: Package fat native gem
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ruby:3.3-alpine sh -c '
+            set -e
+            apk add --no-cache build-base bash linux-headers
+            gem install bundler --no-document
+            bundle config set --local path vendor/bundle
+            bundle install
+            bundle exec rake native:package
+          '
+          sudo chown -R "$(id -u):$(id -g)" pkg
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: gem-aarch64-linux-musl
+          path: pkg/pico_phone-*.gem
+
   release:
     name: Push to RubyGems
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-native-darwin, build-native-linux, build-native-linux-arm]
+    needs: [build-native-darwin, build-native-linux, build-native-linux-arm, build-native-musl-x86_64, build-native-musl-aarch64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
