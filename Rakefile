@@ -69,6 +69,10 @@ task "native:package" do
 
   platform_str = if RUBY_PLATFORM.include?("darwin")
     "arm64-darwin"
+  elsif RUBY_PLATFORM.include?("musl")
+    # Must be distinguished from the glibc build below -- RubyGems/Bundler use this
+    # suffix to avoid installing a glibc-linked binary on a musl system (or vice versa).
+    "#{RbConfig::CONFIG['host_cpu']}-linux-musl"
   else
     "#{RbConfig::CONFIG['host_cpu']}-linux"
   end
