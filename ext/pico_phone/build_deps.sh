@@ -8,6 +8,17 @@ INSTALL_DIR="$SCRIPT_DIR/vendor/install"
 
 mkdir -p "$SRC_DIR" "$BUILD_DIR" "$INSTALL_DIR"
 
+# macOS ships `shasum` (Perl-based) but no `sha256sum`; glibc/musl Linux ship
+# `sha256sum` (coreutils/busybox) and usually not `shasum`. Support both.
+verify_sha256() {
+  local expected="$1" file="$2"
+  if command -v shasum >/dev/null 2>&1; then
+    echo "${expected}  ${file}" | shasum -a 256 -c -
+  else
+    echo "${expected}  ${file}" | sha256sum -c -
+  fi
+}
+
 ABSEIL_VERSION="20260817.0"
 ABSEIL_URL="https://github.com/abseil/abseil-cpp/archive/refs/tags/${ABSEIL_VERSION}.tar.gz"
 ABSEIL_SHA256="f7e05179df39c45434cad433f5783840bb3788ef322976f9138bc6b72b3a107d"
@@ -17,6 +28,10 @@ ABSEIL_BUILD="$BUILD_DIR/abseil-build"
 
 OS="$(uname)"
 CPU_COUNT=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+IS_MUSL=false
+if ruby -e 'exit(RUBY_PLATFORM.include?("musl") ? 0 : 1)' 2>/dev/null; then
+  IS_MUSL=true
+fi
 
 if [ -f "$INSTALL_DIR/lib/libabsl_base.a" ]; then
   echo "==> Abseil already installed, skipping"
@@ -29,7 +44,7 @@ else
   fi
 
   echo "==> Verifying checksum..."
-  echo "${ABSEIL_SHA256}  ${ABSEIL_TARBALL}" | shasum -a 256 -c -
+  verify_sha256 "$ABSEIL_SHA256" "$ABSEIL_TARBALL"
 
   echo "==> Extracting..."
   if [ ! -d "$ABSEIL_SRC" ]; then
@@ -81,7 +96,7 @@ else
   fi
 
   echo "==> Verifying checksum..."
-  echo "${PROTOBUF_SHA256}  ${PROTOBUF_TARBALL}" | shasum -a 256 -c -
+  verify_sha256 "$PROTOBUF_SHA256" "$PROTOBUF_TARBALL"
 
   echo "==> Extracting..."
   if [ ! -d "$PROTOBUF_SRC" ]; then
@@ -115,6 +130,65 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# ICU (musl only -- glibc Linux links the system's dynamic ICU instead, and
+# Darwin links Homebrew's. musl has no equivalent system package we can rely
+# on being ABI-compatible, so we build our own static copy here, the same way
+# Darwin's static-link native builds do for boost.)
+# ---------------------------------------------------------------------------
+
+if [[ "$IS_MUSL" == "true" ]]; then
+  ICU_VERSION="78.3"
+  ICU_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}/icu4c-${ICU_VERSION}-sources.tgz"
+  ICU_SHA512_LISTING_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}/SHASUM512.txt"
+  ICU_TARBALL="$SRC_DIR/icu4c-${ICU_VERSION}-sources.tgz"
+  ICU_SRC="$BUILD_DIR/icu-${ICU_VERSION}/icu/source"
+
+  if [ -f "$INSTALL_DIR/lib/libicudata.a" ]; then
+    echo "==> ICU already installed, skipping"
+  else
+    echo "==> Downloading ICU ${ICU_VERSION}..."
+    if [ ! -f "$ICU_TARBALL" ]; then
+      curl -L "$ICU_URL" -o "$ICU_TARBALL"
+    else
+      echo "    already downloaded, skipping"
+    fi
+
+    echo "==> Verifying checksum..."
+    curl -sL "$ICU_SHA512_LISTING_URL" -o "$SRC_DIR/icu-SHASUM512.txt"
+    ( cd "$SRC_DIR" && grep "icu4c-${ICU_VERSION}-sources.tgz\$" icu-SHASUM512.txt | sha512sum -c - )
+
+    echo "==> Extracting..."
+    if [ ! -d "$ICU_SRC" ]; then
+      mkdir -p "$BUILD_DIR/icu-${ICU_VERSION}"
+      tar -xzf "$ICU_TARBALL" -C "$BUILD_DIR/icu-${ICU_VERSION}"
+    else
+      echo "    already extracted, skipping"
+    fi
+
+    echo "==> Configuring ICU (static, PIC; tools left enabled -- pkgdata needs" \
+         "them to package the prebuilt locale data that ships in data/in)..."
+    ( cd "$ICU_SRC" && \
+      CFLAGS="-fPIC -O2" CXXFLAGS="-fPIC -O2 -std=c++17" \
+      ./runConfigureICU Linux \
+        --prefix="$INSTALL_DIR" \
+        --enable-static \
+        --disable-shared \
+        --disable-tests \
+        --disable-samples \
+        --disable-extras )
+
+    echo "==> Building ICU (using ${CPU_COUNT} cores)..."
+    ( cd "$ICU_SRC" && gmake -j"$CPU_COUNT" )
+
+    echo "==> Installing ICU to ${INSTALL_DIR}..."
+    ( cd "$ICU_SRC" && gmake install )
+
+    echo "==> ICU done."
+    ls -la "$INSTALL_DIR/lib/libicu"*.a 2>/dev/null
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # libphonenumber
 # ---------------------------------------------------------------------------
 
@@ -136,7 +210,10 @@ if [[ "$OS" == "Darwin" ]]; then
   USE_BOOST="ON"
 else
   # Linux: libphonenumber built without Boost (uses std::mutex/thread via C++17).
-  # ICU comes from the system (libicu-dev). Boost not needed.
+  # glibc: ICU comes from the system (libicu-dev), found via CMake's default
+  # search paths. musl: our own static ICU was just installed into
+  # INSTALL_DIR above, so CMAKE_PREFIX_PATH=INSTALL_DIR covers both cases
+  # without branching here. Boost not needed either way.
   PHONE_CMAKE_PREFIX="${INSTALL_DIR}"
   USE_BOOST="OFF"
 fi
@@ -152,7 +229,7 @@ else
   fi
 
   echo "==> Verifying checksum..."
-  echo "${LIBPHONE_SHA256}  ${LIBPHONE_TARBALL}" | shasum -a 256 -c -
+  verify_sha256 "$LIBPHONE_SHA256" "$LIBPHONE_TARBALL"
 
   echo "==> Extracting..."
   if [ ! -d "$LIBPHONE_SRC" ]; then
@@ -164,7 +241,7 @@ else
   echo "==> Downloading Boost compatibility patch..."
   if [ ! -f "$BOOST_PATCH_FILE" ]; then
     curl -L "$BOOST_PATCH_URL" -o "$BOOST_PATCH_FILE"
-    echo "${BOOST_PATCH_SHA256}  ${BOOST_PATCH_FILE}" | shasum -a 256 -c -
+    verify_sha256 "$BOOST_PATCH_SHA256" "$BOOST_PATCH_FILE"
   else
     echo "    already downloaded, skipping"
   fi

@@ -50,8 +50,15 @@ if NATIVE_BUILD
     %w[libicui18n libicuuc libicudata].each do |lib|
       static_libs << "#{icu_prefix}/lib/#{lib}.a"
     end
+  elsif RUBY_PLATFORM.include?("musl")
+    # musl (e.g. Alpine): unlike glibc there's no de facto stable system ICU
+    # package/ABI to assume is present at runtime, so build_deps.sh compiles a
+    # static ICU into VENDOR_INSTALL alongside abseil/protobuf/libphonenumber.
+    # Whole-archive it below along with those, rather than -l-linking dynamically.
+    static_libs += %w[libicui18n libicuuc libicudata].map { |lib| "#{VENDOR_INSTALL}/lib/#{lib}.a" }
+    $LOCAL_LIBS << " -lpthread -ldl"
   else
-    # Linux: libphonenumber was built with USE_BOOST=OFF so no Boost needed.
+    # glibc Linux: libphonenumber was built with USE_BOOST=OFF so no Boost needed.
     # Ubuntu's libicu-dev static archives are not compiled with -fPIC and cannot
     # be linked into a shared object. Link ICU dynamically instead — libicu74 is
     # part of the Ubuntu 24.04 base system and is present in the target environment.
