@@ -20,7 +20,7 @@ Or install directly:
 gem install pico_phone
 ```
 
-Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs), `x86_64-linux`, and `aarch64-linux` (Ubuntu 24.04), for Ruby 3.1–3.4 and 4.0. On these platforms and Ruby versions, no system libraries or compiler are required — Bundler will select the right binary automatically.
+Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs), `x86_64-linux` and `aarch64-linux` (Ubuntu 24.04, glibc), and `x86_64-linux-musl` and `aarch64-linux-musl` (Alpine and similar), for Ruby 3.1–3.4 and 4.0. On these platforms and Ruby versions, no system libraries or compiler are required — Bundler will select the right binary automatically.
 
 On other platforms the gem compiles from source and requires libphonenumber:
 
@@ -539,10 +539,11 @@ For Linux, use `verify_docker.sh` (requires Docker Desktop):
 ```bash
 bash verify_docker.sh dynamic   # Ubuntu arm64 + x86_64, dynamic linking (~2 min each)
 bash verify_docker.sh static    # Ubuntu arm64 + x86_64, NATIVE_BUILD=1 (~8–15 min each)
-bash verify_docker.sh           # all four Linux combinations
+bash verify_docker.sh musl      # Alpine arm64 + x86_64, always NATIVE_BUILD=1 (~10–15 min each)
+bash verify_docker.sh           # all six Linux combinations
 ```
 
-The static Linux runs compile abseil, protobuf, and libphonenumber from source inside the container — that's what makes them slow. The dynamic runs use Ubuntu's packaged `libphonenumber-dev` and are much faster.
+The static Linux runs compile abseil, protobuf, and libphonenumber from source inside the container — that's what makes them slow. The dynamic runs use Ubuntu's packaged `libphonenumber-dev` and are much faster. Alpine has no equivalent system package, so musl is always static — it also builds ICU from source, on top of the other three.
 
 ## Contributing
 

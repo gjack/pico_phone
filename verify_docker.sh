@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Cross-platform verification: runs compile + spec inside Ubuntu 24.04
-# containers for the four Linux build combinations (aarch64/x86_64 × dynamic/static).
+# Cross-platform verification: runs compile + spec inside containers for the
+# six Linux build combinations -- glibc (Ubuntu 24.04) aarch64/x86_64 ×
+# dynamic/static, plus musl (Alpine) aarch64/x86_64, static only (there's no
+# packaged libphonenumber-dev equivalent on Alpine to link against
+# dynamically, so NATIVE_BUILD is the only way musl ever works at all).
 #
 # Prerequisites: Docker running, with linux/amd64 emulation available
 # (Docker Desktop on Mac ships QEMU for this by default).
 #
 # Usage:
-#   bash verify_docker.sh              # runs all four combinations
-#   bash verify_docker.sh dynamic      # dynamic builds only
-#   bash verify_docker.sh static       # NATIVE_BUILD static builds only
+#   bash verify_docker.sh              # runs all six combinations
+#   bash verify_docker.sh dynamic      # glibc dynamic builds only
+#   bash verify_docker.sh static       # glibc NATIVE_BUILD static builds only
+#   bash verify_docker.sh musl         # musl builds only (always static)
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
@@ -31,11 +35,7 @@ run_combo() {
   if [ "$native_build" = "1" ]; then
     # NATIVE_BUILD: no system libphonenumber needed; we build from vendored source.
     local extra_pkg=""
-    # Remove macOS binaries and CMake build dirs (CMakeCache.txt embeds the
-    # macOS source path, causing cmake to refuse to re-run on a different path).
-    # Keep vendor/build/abseil-cpp-*/ etc. (extracted source, platform-agnostic)
-    # and vendor/src/ (downloaded tarballs) so build_deps.sh doesn't re-download.
-    local build_cmd="rm -rf /tmp/pico_phone/ext/pico_phone/vendor/install /tmp/pico_phone/ext/pico_phone/vendor/build/abseil-build /tmp/pico_phone/ext/pico_phone/vendor/build/protobuf-build /tmp/pico_phone/ext/pico_phone/vendor/build/libphonenumber-build && bash /tmp/pico_phone/ext/pico_phone/build_deps.sh && PICO_PHONE_NATIVE_BUILD=1 bundle exec rake compile spec"
+    local build_cmd="bash ext/pico_phone/build_deps.sh && PICO_PHONE_NATIVE_BUILD=1 bundle exec rake compile spec"
   else
     # Dynamic: system libphonenumber-dev supplies headers + shared library.
     local extra_pkg="libphonenumber-dev"
@@ -48,7 +48,9 @@ apt-get update -q
 apt-get install -y --no-install-recommends \
   ruby ruby-dev bundler cmake build-essential git curl ca-certificates \
   libicu-dev ${extra_pkg}
-cp -r /work /tmp/pico_phone
+mkdir -p /tmp/pico_phone
+git -C /work ls-files -z | tar --null -C /work -T - -czf /tmp/repo.tar.gz
+tar -xzf /tmp/repo.tar.gz -C /tmp/pico_phone
 cd /tmp/pico_phone
 bundle install --quiet
 ${build_cmd}
@@ -66,6 +68,42 @@ ${build_cmd}
   fi
 }
 
+run_musl_combo() {
+  local label="$1"
+  local platform="$2"
+
+  echo ""
+  echo "=========================================="
+  echo "  $label"
+  echo "=========================================="
+
+  local inline_script="
+set -euo pipefail
+apk add --no-cache build-base cmake bash curl tar git patch pkgconfig linux-headers python3
+mkdir -p /tmp/pico_phone
+git -C /work ls-files -z | tar --null -C /work -T - -czf /tmp/repo.tar.gz
+tar -xzf /tmp/repo.tar.gz -C /tmp/pico_phone
+cd /tmp/pico_phone
+bash ext/pico_phone/build_deps.sh
+gem install bundler --no-document
+bundle config set --local path vendor/bundle
+bundle install --quiet
+export PICO_PHONE_NATIVE_BUILD=1
+bundle exec rake compile spec
+"
+
+  if docker run --rm \
+       --platform "$platform" \
+       -v "${REPO_ROOT}:/work:ro" \
+       ruby:3.3-alpine sh -c "$inline_script" 2>&1; then
+    echo "  PASS: $label"
+    PASS=$((PASS + 1))
+  else
+    echo "  FAIL: $label"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
 if [ "$FILTER" = "all" ] || [ "$FILTER" = "dynamic" ]; then
   run_combo "aarch64-linux  dynamic"       "linux/arm64" "0"
   run_combo "x86_64-linux   dynamic"       "linux/amd64" "0"
@@ -74,6 +112,11 @@ fi
 if [ "$FILTER" = "all" ] || [ "$FILTER" = "static" ]; then
   run_combo "aarch64-linux  NATIVE_BUILD=1" "linux/arm64" "1"
   run_combo "x86_64-linux   NATIVE_BUILD=1" "linux/amd64" "1"
+fi
+
+if [ "$FILTER" = "all" ] || [ "$FILTER" = "musl" ]; then
+  run_musl_combo "aarch64-linux-musl  NATIVE_BUILD=1" "linux/arm64"
+  run_musl_combo "x86_64-linux-musl   NATIVE_BUILD=1" "linux/amd64"
 fi
 
 echo ""
