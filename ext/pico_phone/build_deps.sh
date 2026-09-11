@@ -192,9 +192,9 @@ fi
 # libphonenumber
 # ---------------------------------------------------------------------------
 
-LIBPHONE_VERSION="9.0.38"
+LIBPHONE_VERSION="9.0.39"
 LIBPHONE_URL="https://github.com/google/libphonenumber/archive/refs/tags/v${LIBPHONE_VERSION}.tar.gz"
-LIBPHONE_SHA256="75e0a15fdc8fab9efc8a101d1d36ba3866c407889faae6c025e6aac58957da77"
+LIBPHONE_SHA256="e30c2aea5b66f53821d1eb971f81b9be1350e4b04a4577c8283803a1c8c5210b"
 LIBPHONE_TARBALL="$SRC_DIR/libphonenumber-${LIBPHONE_VERSION}.tar.gz"
 LIBPHONE_SRC="$BUILD_DIR/libphonenumber-${LIBPHONE_VERSION}"
 LIBPHONE_BUILD="$BUILD_DIR/libphonenumber-build"
