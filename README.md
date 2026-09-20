@@ -20,7 +20,9 @@ Or install directly:
 gem install pico_phone
 ```
 
-Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs), `x86_64-linux` and `aarch64-linux` (Ubuntu 24.04, glibc), and `x86_64-linux-musl` and `aarch64-linux-musl` (Alpine and similar), for Ruby 3.1–3.4 and 4.0. On these platforms and Ruby versions, no system libraries or compiler are required — Bundler will select the right binary automatically.
+Pre-compiled native gems are available for `arm64-darwin` (Apple Silicon Macs), `x86_64-linux` and `aarch64-linux` (glibc 2.34 or newer: Debian 12+, Ubuntu 22.04+, and similar), and `x86_64-linux-musl` and `aarch64-linux-musl` (Alpine and similar), for Ruby 3.1–3.4 and 4.0. On these platforms and Ruby versions, no system libraries or compiler are required — Bundler will select the right binary automatically.
+
+RubyGems and Bundler pick a gem by CPU, OS and libc name only, so on a glibc distro older than the versions above (for example RHEL/Alma/Rocky 9 or Amazon Linux 2023) they will still select the precompiled gem, which then fails to load. Force the source build there instead — `gem install pico_phone --platform ruby`, or `bundle config set force_ruby_platform true` for Bundler — after installing libphonenumber as described below.
 
 On other platforms the gem compiles from source and requires libphonenumber:
 
@@ -540,10 +542,13 @@ For Linux, use `verify_docker.sh` (requires Docker Desktop):
 bash verify_docker.sh dynamic   # Ubuntu arm64 + x86_64, dynamic linking (~2 min each)
 bash verify_docker.sh static    # Ubuntu arm64 + x86_64, NATIVE_BUILD=1 (~8–15 min each)
 bash verify_docker.sh musl      # Alpine arm64 + x86_64, always NATIVE_BUILD=1 (~10–15 min each)
-bash verify_docker.sh           # all six Linux combinations
+bash verify_docker.sh portable  # Debian 12 arm64 + x86_64: the glibc release recipe, plus a smoke test of the packaged gem on bare Debian images
+bash verify_docker.sh           # all eight Linux combinations
 ```
 
-The static Linux runs compile abseil, protobuf, and libphonenumber from source inside the container — that's what makes them slow. The dynamic runs use Ubuntu's packaged `libphonenumber-dev` and are much faster. Alpine has no equivalent system package, so musl is always static — it also builds ICU from source, on top of the other three.
+The static Linux runs compile abseil, protobuf, ICU, and libphonenumber from source inside the container — that's what makes them slow. The dynamic runs use Ubuntu's packaged `libphonenumber-dev` and are much faster. Alpine has no equivalent system package, so musl is always static.
+
+The `portable` runs are the ones that match how the glibc release gems are built: inside a Debian 12 container, so the resulting binary only needs glibc 2.34 / libstdc++ 3.4.30 (the versions `verify_docker.sh` asserts as its floor; keep them in sync with the platform line in [Installation](#installation)). They then install the packaged gem into bare `ruby:slim` images with no ICU and no compiler and exercise it (`smoke_packaged_gem.sh`), because a passing spec suite on the build machine can't tell you whether the shipped artifact loads elsewhere.
 
 ## Contributing
 
