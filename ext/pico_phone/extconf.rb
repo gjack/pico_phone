@@ -64,6 +64,12 @@ if NATIVE_BUILD
     # would embed every ICU object (~5MB) libphonenumber never calls.
     icu_libs = %w[libicui18n libicuuc libicudata].map { |lib| "#{VENDOR_INSTALL}/lib/#{lib}.a" }
     $LOCAL_LIBS << " -lpthread -ldl"
+    # musl: also embed libstdc++/libgcc. The official ruby:alpine images ship neither, so a
+    # dynamic link fails at require time ("Error loading shared library libstdc++.so.6") on a bare
+    # image, contradicting "nothing to install". Not done on glibc on purpose: there the static
+    # runtime pulls in newer versioned symbols (arc4random, _dl_find_object) and would raise the
+    # glibc requirement above the supported floor; glibc distros all ship libstdc++ anyway.
+    $LOCAL_LIBS << " -static-libstdc++ -static-libgcc" if RUBY_PLATFORM.include?("musl")
   end
 
   # Adding the geocoder introduces a circular reference among several small
