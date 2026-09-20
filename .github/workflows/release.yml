@@ -545,3 +545,36 @@ jobs:
         run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Runs only for real releases (tags), after the gems are on rubygems.org. Installs the
+  # *published* gem on bare images the way users do -- `gem install` and Bundler choosing the
+  # platform gem themselves -- and runs the same checks as the smoke tests above. If this
+  # fails, the release is broken for some users: yank it (`gem yank pico_phone -v <version>
+  # --platform <platform>`) and investigate. Runs on both architectures' runners.
+  verify-published:
+    name: Verify published gem (${{ matrix.arch }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [release]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            arch: x86_64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install the published gem on bare images and use it
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # rubygems.org can take a little while to start serving a just-pushed gem, so retry
+          # before calling it a failure.
+          for attempt in 1 2 3 4 5 6; do
+            bash verify_install.sh --rubygems "$version" && exit 0
+            echo "Attempt $attempt failed; retrying in 60s"
+            sleep 60
+          done
+          echo "The published gem failed verification -- see the log above." >&2
+          exit 1
