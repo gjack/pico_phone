@@ -19,6 +19,8 @@ if NATIVE_BUILD
   $INCFLAGS << " -I#{VENDOR_INSTALL}/include"
 
   static_libs = []
+  # Linked normally (not force-loaded) after static_libs -- see the link line below.
+  icu_libs = []
   # geocoding depends on symbols from phonenumber, so it must precede it in
   # the static link order.
   static_libs << "#{VENDOR_INSTALL}/lib/libgeocoding.a"
@@ -50,20 +52,18 @@ if NATIVE_BUILD
     %w[libicui18n libicuuc libicudata].each do |lib|
       static_libs << "#{icu_prefix}/lib/#{lib}.a"
     end
-  elsif RUBY_PLATFORM.include?("musl")
-    # musl (e.g. Alpine): unlike glibc there's no de facto stable system ICU
-    # package/ABI to assume is present at runtime, so build_deps.sh compiles a
-    # static ICU into VENDOR_INSTALL alongside abseil/protobuf/libphonenumber.
-    # Whole-archive it below along with those, rather than -l-linking dynamically.
-    static_libs += %w[libicui18n libicuuc libicudata].map { |lib| "#{VENDOR_INSTALL}/lib/#{lib}.a" }
-    $LOCAL_LIBS << " -lpthread -ldl"
   else
-    # glibc Linux: libphonenumber was built with USE_BOOST=OFF so no Boost needed.
-    # Ubuntu's libicu-dev static archives are not compiled with -fPIC and cannot
-    # be linked into a shared object. Link ICU dynamically instead — libicu74 is
-    # part of the Ubuntu 24.04 base system and is present in the target environment.
-    # ICU headers (for the geocoder) come from the system libicu-dev package.
-    $LOCAL_LIBS << " -licui18n -licuuc -licudata -lpthread -ldl"
+    # Linux (glibc and musl): libphonenumber was built with USE_BOOST=OFF so no
+    # Boost needed. build_deps.sh compiles a static, -fPIC, data-filtered ICU into
+    # VENDOR_INSTALL alongside abseil/protobuf/libphonenumber, and we link that
+    # instead of a system ICU: a dynamic link would tie the .so to one distro's ICU
+    # SONAME (libicu74 on Ubuntu 24.04, absent on Debian), and a distro's own
+    # static ICU archives generally aren't built -fPIC so can't go into a shared
+    # object either. ICU is kept out of the force-load group below: it has no
+    # circular references with the other archives, and force-loading all of it
+    # would embed every ICU object (~5MB) libphonenumber never calls.
+    icu_libs = %w[libicui18n libicuuc libicudata].map { |lib| "#{VENDOR_INSTALL}/lib/#{lib}.a" }
+    $LOCAL_LIBS << " -lpthread -ldl"
   end
 
   # Adding the geocoder introduces a circular reference among several small
@@ -77,7 +77,8 @@ if NATIVE_BUILD
   if RUBY_PLATFORM.include?("darwin")
     $LOCAL_LIBS << " -Wl,-all_load " + static_libs.join(" ")
   else
-    $LOCAL_LIBS << " -Wl,--whole-archive " + static_libs.join(" ") + " -Wl,--no-whole-archive"
+    $LOCAL_LIBS << " -Wl,--whole-archive " + static_libs.join(" ") + " -Wl,--no-whole-archive " +
+                   icu_libs.join(" ")
   end
 
   unless find_header("phonenumbers/phonenumberutil.h")
