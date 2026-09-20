@@ -47,7 +47,7 @@ jobs:
             stale="${stale}- libphonenumber: pinned ${pinned_libphone}, latest ${latest_libphone}\n"
           fi
           if [ "$pinned_icu" != "$latest_icu" ]; then
-            stale="${stale}- icu (musl-only): pinned ${pinned_icu}, latest ${latest_icu}\n"
+            stale="${stale}- icu (Linux builds): pinned ${pinned_icu}, latest ${latest_icu}\n"
           fi
 
           if [ -z "$stale" ]; then

@@ -28,10 +28,6 @@ ABSEIL_BUILD="$BUILD_DIR/abseil-build"
 
 OS="$(uname)"
 CPU_COUNT=$(sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
-IS_MUSL=false
-if ruby -e 'exit(RUBY_PLATFORM.include?("musl") ? 0 : 1)' 2>/dev/null; then
-  IS_MUSL=true
-fi
 
 if [ -f "$INSTALL_DIR/lib/libabsl_base.a" ]; then
   echo "==> Abseil already installed, skipping"
@@ -130,44 +126,108 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# ICU (musl only -- glibc Linux links the system's dynamic ICU instead, and
-# Darwin links Homebrew's. musl has no equivalent system package we can rely
-# on being ABI-compatible, so we build our own static copy here, the same way
-# Darwin's static-link native builds do for boost.)
+# ICU (all Linux -- Darwin links Homebrew's instead). We build our own static,
+# -fPIC copy rather than linking a system one: musl has no ABI-stable system
+# ICU to rely on, and on glibc a dynamic link ties the resulting .so to one
+# distro's ICU SONAME (e.g. libicu74 on Ubuntu 24.04, which doesn't exist on
+# Debian) while the distro's own static archives aren't built -fPIC and can't
+# go into a shared object.
+#
+# ICU's full data is ~32MB. pico_phone never calls ICU directly; libphonenumber
+# uses it for regexes/case folding/character properties (core data, kept) and, in
+# the offline geocoder, for localized country names (the `region` tree, kept for
+# every language so geo_name(lang) keeps working). Everything else -- collation,
+# break iterators, currencies, time zones, units, transliteration, converters,
+# language/script names, all locales but `en` -- is dropped via ICU's data filter,
+# which takes the data down to ~2.4MB. Two build details that make the filter
+# actually apply:
+#   * icu4c-*-sources.tgz has no data sources (only a prebuilt full icudt*.dat),
+#     so the separate icu4c-*-data.zip is overlaid onto it, and
+#   * data/Makefile.in uses a prebuilt data/in/icudt*.dat verbatim if present, so
+#     it is deleted to force a from-source (filtered) data build.
+# Needs python3 (ICU's data builder). The filter lives in this script so that the
+# release workflow's cache key (a hash of this file) changes whenever it does.
 # ---------------------------------------------------------------------------
 
-if [[ "$IS_MUSL" == "true" ]]; then
+if [[ "$OS" != "Darwin" ]]; then
   ICU_VERSION="78.3"
-  ICU_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}/icu4c-${ICU_VERSION}-sources.tgz"
-  ICU_SHA512_LISTING_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}/SHASUM512.txt"
+  ICU_BASE_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}"
+  ICU_URL="${ICU_BASE_URL}/icu4c-${ICU_VERSION}-sources.tgz"
+  ICU_DATA_URL="${ICU_BASE_URL}/icu4c-${ICU_VERSION}-data.zip"
+  ICU_SHA512_LISTING_URL="${ICU_BASE_URL}/SHASUM512.txt"
   ICU_TARBALL="$SRC_DIR/icu4c-${ICU_VERSION}-sources.tgz"
+  ICU_DATA_ZIP="$SRC_DIR/icu4c-${ICU_VERSION}-data.zip"
   ICU_SRC="$BUILD_DIR/icu-${ICU_VERSION}/icu/source"
+  ICU_FILTER="$BUILD_DIR/icu-data-filter.json"
 
-  if [ -f "$INSTALL_DIR/lib/libicudata.a" ]; then
+  ICU_FILTER_JSON='{
+  "strategy": "subtractive",
+  "featureFilters": {
+    "locales_tree": { "filterType": "language", "includelist": ["en"] },
+    "brkitr_tree": "exclude",
+    "brkitr_rules": "exclude",
+    "brkitr_dictionaries": "exclude",
+    "brkitr_lstm": "exclude",
+    "brkitr_adaboost": "exclude",
+    "coll_tree": "exclude",
+    "coll_ucadata": "exclude",
+    "curr_tree": "exclude",
+    "curr_supplemental": "exclude",
+    "lang_tree": "exclude",
+    "zone_tree": "exclude",
+    "zone_supplemental": "exclude",
+    "unit_tree": "exclude",
+    "rbnf_tree": "exclude",
+    "translit": "exclude",
+    "confusables": "exclude",
+    "stringprep": "exclude",
+    "conversion_mappings": "exclude",
+    "unames": "exclude",
+    "ulayout": "exclude",
+    "uemoji": "exclude"
+  }
+}'
+
+  # Identifies "this ICU version + this filter" so a stale vendor/install left by an
+  # older build_deps.sh (e.g. full unfiltered ICU) gets rebuilt instead of reused.
+  ICU_STAMP="$INSTALL_DIR/lib/.icu-stamp-${ICU_VERSION}-$(printf '%s' "$ICU_VERSION $ICU_FILTER_JSON" | cksum | cut -d' ' -f1)"
+
+  if [ -f "$INSTALL_DIR/lib/libicudata.a" ] && [ -f "$ICU_STAMP" ]; then
     echo "==> ICU already installed, skipping"
   else
+    command -v python3 >/dev/null 2>&1 || {
+      echo "python3 is required to build ICU's filtered data (install python3 and re-run)" >&2
+      exit 1
+    }
+
+    # Start clean: drop any ICU from an older recipe (different version/filter/unfiltered).
+    rm -f "$INSTALL_DIR"/lib/libicu*.a "$INSTALL_DIR"/lib/.icu-stamp-*
+    rm -rf "$BUILD_DIR/icu-${ICU_VERSION}"
+
     echo "==> Downloading ICU ${ICU_VERSION}..."
-    if [ ! -f "$ICU_TARBALL" ]; then
-      curl -L "$ICU_URL" -o "$ICU_TARBALL"
-    else
-      echo "    already downloaded, skipping"
-    fi
+    for pair in "$ICU_TARBALL|$ICU_URL" "$ICU_DATA_ZIP|$ICU_DATA_URL"; do
+      if [ ! -f "${pair%%|*}" ]; then
+        curl -L "${pair##*|}" -o "${pair%%|*}"
+      else
+        echo "    ${pair%%|*} already downloaded, skipping"
+      fi
+    done
 
-    echo "==> Verifying checksum..."
+    echo "==> Verifying checksums..."
     curl -sL "$ICU_SHA512_LISTING_URL" -o "$SRC_DIR/icu-SHASUM512.txt"
-    ( cd "$SRC_DIR" && grep "icu4c-${ICU_VERSION}-sources.tgz\$" icu-SHASUM512.txt | sha512sum -c - )
+    ( cd "$SRC_DIR" && grep -e "icu4c-${ICU_VERSION}-sources.tgz\$" -e "icu4c-${ICU_VERSION}-data.zip\$" icu-SHASUM512.txt | sha512sum -c - )
 
-    echo "==> Extracting..."
-    if [ ! -d "$ICU_SRC" ]; then
-      mkdir -p "$BUILD_DIR/icu-${ICU_VERSION}"
-      tar -xzf "$ICU_TARBALL" -C "$BUILD_DIR/icu-${ICU_VERSION}"
-    else
-      echo "    already extracted, skipping"
-    fi
+    echo "==> Extracting (sources + data sources)..."
+    mkdir -p "$BUILD_DIR/icu-${ICU_VERSION}"
+    tar -xzf "$ICU_TARBALL" -C "$BUILD_DIR/icu-${ICU_VERSION}"
+    python3 -m zipfile -e "$ICU_DATA_ZIP" "$ICU_SRC"
+    rm -f "$ICU_SRC"/data/in/icudt*.dat
+    printf '%s\n' "$ICU_FILTER_JSON" > "$ICU_FILTER"
 
-    echo "==> Configuring ICU (static, PIC; tools left enabled -- pkgdata needs" \
-         "them to package the prebuilt locale data that ships in data/in)..."
+    echo "==> Configuring ICU (static, PIC, filtered data; tools left enabled --" \
+         "the data build needs them)..."
     ( cd "$ICU_SRC" && \
+      ICU_DATA_FILTER_FILE="$ICU_FILTER" \
       CFLAGS="-fPIC -O2" CXXFLAGS="-fPIC -O2 -std=c++17" \
       ./runConfigureICU Linux \
         --prefix="$INSTALL_DIR" \
@@ -177,12 +237,16 @@ if [[ "$IS_MUSL" == "true" ]]; then
         --disable-samples \
         --disable-extras )
 
+    # GNU make is `gmake` on Alpine/BSD but plain `make` on Debian/Ubuntu.
+    ICU_MAKE="$(command -v gmake || command -v make)"
+
     echo "==> Building ICU (using ${CPU_COUNT} cores)..."
-    ( cd "$ICU_SRC" && gmake -j"$CPU_COUNT" )
+    ( cd "$ICU_SRC" && "$ICU_MAKE" -j"$CPU_COUNT" )
 
     echo "==> Installing ICU to ${INSTALL_DIR}..."
-    ( cd "$ICU_SRC" && gmake install )
+    ( cd "$ICU_SRC" && "$ICU_MAKE" install )
 
+    touch "$ICU_STAMP"
     echo "==> ICU done."
     ls -la "$INSTALL_DIR/lib/libicu"*.a 2>/dev/null
   fi
@@ -210,10 +274,8 @@ if [[ "$OS" == "Darwin" ]]; then
   USE_BOOST="ON"
 else
   # Linux: libphonenumber built without Boost (uses std::mutex/thread via C++17).
-  # glibc: ICU comes from the system (libicu-dev), found via CMake's default
-  # search paths. musl: our own static ICU was just installed into
-  # INSTALL_DIR above, so CMAKE_PREFIX_PATH=INSTALL_DIR covers both cases
-  # without branching here. Boost not needed either way.
+  # Our own static ICU was just installed into INSTALL_DIR above, so
+  # CMAKE_PREFIX_PATH=INSTALL_DIR is enough to find it on glibc and musl alike.
   PHONE_CMAKE_PREFIX="${INSTALL_DIR}"
   USE_BOOST="OFF"
 fi

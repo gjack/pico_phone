@@ -235,9 +235,10 @@ Copyright © 2016-2025 Unicode, Inc.
 License: Unicode License v3
 ================================================================================
 
-Statically embedded on macOS and musl Linux (e.g. Alpine) builds;
-dynamically linked at runtime on glibc Linux (see
-ext/pico_phone/extconf.rb and build_deps.sh). ICU bundles
+Statically embedded on every precompiled build (macOS and Linux; see
+ext/pico_phone/extconf.rb and build_deps.sh). The Linux builds embed a
+reduced subset of ICU's data (only what libphonenumber uses: character
+properties, case folding, normalization, and country names). ICU bundles
 additional third-party notices covering optional components (word-break
 dictionaries for CJK/Lao/Burmese text segmentation, build tooling) that
 pico_phone does not use; the primary license covering the ICU library and
