@@ -74,9 +74,9 @@ fi
 # protobuf
 # ---------------------------------------------------------------------------
 
-PROTOBUF_VERSION="36.1"
+PROTOBUF_VERSION="36.2"
 PROTOBUF_URL="https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protobuf-${PROTOBUF_VERSION}.tar.gz"
-PROTOBUF_SHA256="dc74fa582f559cbd31614ddfefb4868f43c919d7184bde514bb47f90c6025eb8"
+PROTOBUF_SHA256="3d9642a662d10e68ebae5e53f14dcce5105684212d5078f8e0d47d1ab3ae6b64"
 PROTOBUF_TARBALL="$SRC_DIR/protobuf-${PROTOBUF_VERSION}.tar.gz"
 PROTOBUF_SRC="$BUILD_DIR/protobuf-${PROTOBUF_VERSION}"
 PROTOBUF_BUILD="$BUILD_DIR/protobuf-build"
