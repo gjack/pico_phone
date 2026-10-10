@@ -104,7 +104,7 @@ jobs:
           gem install rice -v '~> 4.3' --no-document
           gem install --local "$GITHUB_WORKSPACE"/pkg/pico_phone-*.gem --no-document
           ruby "$GITHUB_WORKSPACE/smoke_check.rb"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gem-arm64-darwin
           path: pkg/pico_phone-*.gem
@@ -207,7 +207,7 @@ jobs:
             rubylang/ruby:3.1-jammy rubylang/ruby:3.2-jammy rubylang/ruby:3.3-jammy \
             rubylang/ruby:3.4-jammy rubylang/ruby:4.0-jammy \
             ruby:3.4-slim rubylang/ruby:3.4-noble
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gem-x86_64-linux
           path: pkg/pico_phone-*.gem
@@ -304,7 +304,7 @@ jobs:
             rubylang/ruby:3.1-jammy rubylang/ruby:3.2-jammy rubylang/ruby:3.3-jammy \
             rubylang/ruby:3.4-jammy rubylang/ruby:4.0-jammy \
             ruby:3.4-slim rubylang/ruby:3.4-noble
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gem-aarch64-linux
           path: pkg/pico_phone-*.gem
@@ -407,7 +407,7 @@ jobs:
         run: |
           bash smoke_packaged_gem.sh pkg \
             ruby:3.1-alpine ruby:3.2-alpine ruby:3.3-alpine ruby:3.4-alpine ruby:4.0-alpine
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gem-x86_64-linux-musl
           path: pkg/pico_phone-*.gem
@@ -502,7 +502,7 @@ jobs:
         run: |
           bash smoke_packaged_gem.sh pkg \
             ruby:3.1-alpine ruby:3.2-alpine ruby:3.3-alpine ruby:3.4-alpine ruby:4.0-alpine
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: gem-aarch64-linux-musl
           path: pkg/pico_phone-*.gem
