@@ -13,6 +13,18 @@ $INCFLAGS << " -I#{File.expand_path("vendor_headers", __dir__)}"
 VENDOR_INSTALL = File.expand_path("vendor/install", __dir__)
 NATIVE_BUILD = ENV["PICO_PHONE_NATIVE_BUILD"] == "1"
 
+# Homebrew ICU used for macOS native (static) builds. Must match ICU_PREFIX in
+# build_deps.sh and the `brew install` in release.yml.
+MACOS_STATIC_ICU = "icu4c@79"
+
+# The versioned ICU formula Homebrew's libphonenumber is currently built
+# against. Homebrew moves it to each new ICU major (icu4c@78 -> @79 -> ...), so
+# it's looked up rather than hardcoded; the geocoder header needs that ICU's
+# headers.
+def homebrew_libphonenumber_icu
+  `brew deps libphonenumber 2>/dev/null`.split.grep(/\Aicu4c(@\d+)?\z/).last
+end
+
 if NATIVE_BUILD
   # Static linking against vendored libraries for native gem builds.
   # All five dependencies are baked into the .so — users need nothing installed.
@@ -41,7 +53,7 @@ if NATIVE_BUILD
 
   if RUBY_PLATFORM.include?("darwin")
     boost_prefix = `brew --prefix boost 2>/dev/null`.strip
-    icu_prefix   = `brew --prefix icu4c@78 2>/dev/null`.strip
+    icu_prefix   = `brew --prefix #{MACOS_STATIC_ICU} 2>/dev/null`.strip
 
     $INCFLAGS << " -I#{icu_prefix}/include"
 
@@ -97,9 +109,9 @@ if NATIVE_BUILD
 else
   # Dynamic linking against system/Homebrew libraries (default developer workflow).
   if RUBY_PLATFORM.include?("darwin")
-    # icu4c@78 is already a transitive dependency of Homebrew's libphonenumber
+    # ICU is already a transitive dependency of Homebrew's libphonenumber
     # formula (which itself ships geocoding), so no extra install step needed.
-    %w[libphonenumber protobuf abseil icu4c@78].each do |pkg|
+    %w[libphonenumber protobuf abseil].push(homebrew_libphonenumber_icu).compact.each do |pkg|
       prefix = `brew --prefix #{pkg} 2>/dev/null`.strip
       next if prefix.empty?
       $INCFLAGS << " -I#{prefix}/include"

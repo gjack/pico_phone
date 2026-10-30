@@ -269,7 +269,10 @@ BOOST_PATCH_FILE="$SRC_DIR/libphonenumber-boost-fix.patch"
 
 if [[ "$OS" == "Darwin" ]]; then
   BOOST_PREFIX="$(brew --prefix boost)"
-  ICU_PREFIX="$(brew --prefix icu4c@78)"
+  # Keep in step with the ICU that Homebrew's boost/libphonenumber are built
+  # against, with MACOS_STATIC_ICU in extconf.rb, and with the `brew install`
+  # in release.yml.
+  ICU_PREFIX="$(brew --prefix icu4c@79)"
   PHONE_CMAKE_PREFIX="${INSTALL_DIR};${BOOST_PREFIX};${ICU_PREFIX}"
   USE_BOOST="ON"
 else
