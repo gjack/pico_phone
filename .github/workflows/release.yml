@@ -16,7 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install macOS build dependencies
-        run: brew install boost icu4c@79
+        # Runner images ship a Homebrew package index frozen at image build time
+        # (and disable auto-update), so a recently added formula like icu4c@79
+        # can be missing. Refresh the index first.
+        run: |
+          brew update
+          brew install boost icu4c@79
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ext/pico_phone/vendor/install
