@@ -150,7 +150,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [[ "$OS" != "Darwin" ]]; then
-  ICU_VERSION="78.3"
+  ICU_VERSION="79.1"
   ICU_BASE_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}"
   ICU_URL="${ICU_BASE_URL}/icu4c-${ICU_VERSION}-sources.tgz"
   ICU_DATA_URL="${ICU_BASE_URL}/icu4c-${ICU_VERSION}-data.zip"
