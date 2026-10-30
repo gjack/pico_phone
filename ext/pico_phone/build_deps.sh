@@ -150,7 +150,7 @@ fi
 # ---------------------------------------------------------------------------
 
 if [[ "$OS" != "Darwin" ]]; then
-  ICU_VERSION="78.3"
+  ICU_VERSION="79.1"
   ICU_BASE_URL="https://github.com/unicode-org/icu/releases/download/release-${ICU_VERSION}"
   ICU_URL="${ICU_BASE_URL}/icu4c-${ICU_VERSION}-sources.tgz"
   ICU_DATA_URL="${ICU_BASE_URL}/icu4c-${ICU_VERSION}-data.zip"
@@ -256,9 +256,9 @@ fi
 # libphonenumber
 # ---------------------------------------------------------------------------
 
-LIBPHONE_VERSION="9.0.41"
+LIBPHONE_VERSION="9.0.42"
 LIBPHONE_URL="https://github.com/google/libphonenumber/archive/refs/tags/v${LIBPHONE_VERSION}.tar.gz"
-LIBPHONE_SHA256="5a5021295990c7ec36c639ab1b0e24ef54faa5571ba1cabcd59fa034563aad4d"
+LIBPHONE_SHA256="08cacf996f8d4a939bff5487bce6fbddb572acee358a44cb9031aa81d25cecd5"
 LIBPHONE_TARBALL="$SRC_DIR/libphonenumber-${LIBPHONE_VERSION}.tar.gz"
 LIBPHONE_SRC="$BUILD_DIR/libphonenumber-${LIBPHONE_VERSION}"
 LIBPHONE_BUILD="$BUILD_DIR/libphonenumber-build"
@@ -269,7 +269,10 @@ BOOST_PATCH_FILE="$SRC_DIR/libphonenumber-boost-fix.patch"
 
 if [[ "$OS" == "Darwin" ]]; then
   BOOST_PREFIX="$(brew --prefix boost)"
-  ICU_PREFIX="$(brew --prefix icu4c@78)"
+  # Keep in step with the ICU that Homebrew's boost/libphonenumber are built
+  # against, with MACOS_STATIC_ICU in extconf.rb, and with the `brew install`
+  # in release.yml.
+  ICU_PREFIX="$(brew --prefix icu4c@79)"
   PHONE_CMAKE_PREFIX="${INSTALL_DIR};${BOOST_PREFIX};${ICU_PREFIX}"
   USE_BOOST="ON"
 else
