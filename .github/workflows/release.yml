@@ -27,35 +27,35 @@ jobs:
           path: ext/pico_phone/vendor/install
           key: native-deps-darwin-${{ hashFiles('ext/pico_phone/build_deps.sh') }}
 
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.1'
           bundler-cache: true
       - name: Compile native extension (Ruby 3.1)
         run: bundle exec rake native:compile
 
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.2'
           bundler-cache: true
       - name: Compile native extension (Ruby 3.2)
         run: bundle exec rake native:compile
 
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.3'
           bundler-cache: true
       - name: Compile native extension (Ruby 3.3)
         run: bundle exec rake native:compile
 
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.4'
           bundler-cache: true
       - name: Compile native extension (Ruby 3.4)
         run: bundle exec rake native:compile
 
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '4.0'
           bundler-cache: true
@@ -64,7 +64,7 @@ jobs:
 
       - name: Package fat native gem
         run: bundle exec rake native:package
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.1'
       - name: Smoke-test the packaged gem (Ruby 3.1)
@@ -73,7 +73,7 @@ jobs:
           gem install rice -v '~> 4.3' --no-document
           gem install --local "$GITHUB_WORKSPACE"/pkg/pico_phone-*.gem --no-document
           ruby "$GITHUB_WORKSPACE/smoke_check.rb"
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.2'
       - name: Smoke-test the packaged gem (Ruby 3.2)
@@ -82,7 +82,7 @@ jobs:
           gem install rice -v '~> 4.3' --no-document
           gem install --local "$GITHUB_WORKSPACE"/pkg/pico_phone-*.gem --no-document
           ruby "$GITHUB_WORKSPACE/smoke_check.rb"
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.3'
       - name: Smoke-test the packaged gem (Ruby 3.3)
@@ -91,7 +91,7 @@ jobs:
           gem install rice -v '~> 4.3' --no-document
           gem install --local "$GITHUB_WORKSPACE"/pkg/pico_phone-*.gem --no-document
           ruby "$GITHUB_WORKSPACE/smoke_check.rb"
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.4'
       - name: Smoke-test the packaged gem (Ruby 3.4)
@@ -100,7 +100,7 @@ jobs:
           gem install rice -v '~> 4.3' --no-document
           gem install --local "$GITHUB_WORKSPACE"/pkg/pico_phone-*.gem --no-document
           ruby "$GITHUB_WORKSPACE/smoke_check.rb"
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '4.0'
       - name: Smoke-test the packaged gem (Ruby 4.0)
@@ -522,7 +522,7 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: ruby/setup-ruby@26e5b7d197ebf60545ee9667bcbace0be11ccaec # v1.334.0
+      - uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
         with:
           ruby-version: '3.3'
           bundler-cache: true
