@@ -43,7 +43,8 @@ Gem::Specification.new do |spec|
     'lib/pico_phone/version.rb',
     'lib/pico_phone/phone_number.rb',
     'LICENSE.txt',
-    'THIRD_PARTY_LICENSES.txt'
+    'THIRD_PARTY_LICENSES.txt',
+    'README.md'
   ]
   spec.require_paths = ["lib"]
 
