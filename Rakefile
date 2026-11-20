@@ -100,3 +100,51 @@ desc "Build a native gem for the current platform using only the currently activ
      "(local single-Ruby dev convenience; CI instead runs native:compile once per target Ruby, " \
      "then native:package once)"
 task "native:build" => ["native:compile", "native:package"]
+
+# Spike: RubyGems/Bundler 4.1.0 added content-addressable gems -- one small gem per Ruby ABI,
+# named by a content hash, instead of native:package's single fat gem carrying every supported
+# ABI. A content-addressable spec must declare a non-Ruby platform and pin required_ruby_version
+# to a single ABI ("~> X.Y.0"), so each staged bucket gets packaged separately rather than merged.
+desc "Package every currently-staged per-ABI-series binary into its own content-addressable " \
+     "gem instead of one fat gem (spike; requires RubyGems >= 4.1.0)"
+task "native:package_ca" do
+  require "rubygems/package"
+
+  if Gem::Version.new(Gem::VERSION) < Gem::Version.new("4.1.0")
+    abort "Content-addressable gems require RubyGems >= 4.1.0 (found #{Gem::VERSION}). " \
+          "Run `gem update --system`."
+  end
+
+  platform_str = if RUBY_PLATFORM.include?("darwin")
+    "arm64-darwin"
+  elsif RUBY_PLATFORM.include?("musl")
+    "#{RbConfig::CONFIG['host_cpu']}-linux-musl"
+  else
+    "#{RbConfig::CONFIG['host_cpu']}-linux"
+  end
+
+  dlext = RbConfig::CONFIG["DLEXT"]
+  bucket_files = Dir.glob("lib/pico_phone/*/pico_phone.#{dlext}").sort
+  if bucket_files.empty?
+    abort "No compiled binaries found under lib/pico_phone/*/ — run native:compile (once per target Ruby) first"
+  end
+
+  mkdir_p "pkg"
+  bucket_files.each do |bucket_file|
+    abi = File.basename(File.dirname(bucket_file))
+
+    native_spec = gemspec.dup
+    native_spec.platform = Gem::Platform.new(platform_str)
+    native_spec.required_ruby_version = "~> #{abi}.0"
+    native_spec.extensions = []
+    native_spec.files = (gemspec.files + [bucket_file]).uniq
+
+    gem_filename = Gem::Package.build(native_spec, content_addressable: true)
+    mv gem_filename, "pkg/#{gem_filename}"
+    puts "\nBuilt pkg/#{gem_filename} for #{platform_str}, Ruby ABI #{abi}"
+  end
+end
+
+desc "Build content-addressable native gems for the current platform using only the currently " \
+     "active Ruby (spike convenience, mirrors native:build)"
+task "native:build_ca" => ["native:compile", "native:package_ca"]

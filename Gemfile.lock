@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    pico_phone (0.8.6)
+    pico_phone (0.9.0.pre.ca1)
       rice (~> 4.3)
 
 GEM
