@@ -13,4 +13,5 @@ Core API surface: module-level methods on `PicoPhone` (`.parse`, `.valid?`, `.po
 ## Optional
 
 - [Security policy](https://github.com/gjack/pico_phone/blob/main/SECURITY.md)
+- [Experimental content-addressable gem track](https://github.com/gjack/pico_phone/blob/content-addressable/README.md#experimental-content-addressable-gems): an opt-in, `--pre`-only prerelease publishing one small gem per Ruby ABI instead of one fat gem with all of them bundled in — not for production use
 - [libphonenumber upstream](https://github.com/google/libphonenumber): pico_phone is a thin wrapper — region codes, number types, and formatting edge cases are inherited from this library, not defined by pico_phone itself
