@@ -34,7 +34,7 @@ if [ -f "$INSTALL_DIR/lib/libabsl_base.a" ]; then
 else
   echo "==> Downloading abseil ${ABSEIL_VERSION}..."
   if [ ! -f "$ABSEIL_TARBALL" ]; then
-    curl -L "$ABSEIL_URL" -o "$ABSEIL_TARBALL"
+    curl --fail --retry 5 --retry-delay 3 -L "$ABSEIL_URL" -o "$ABSEIL_TARBALL"
   else
     echo "    already downloaded, skipping"
   fi
@@ -86,7 +86,7 @@ if [ -f "$INSTALL_DIR/lib/libprotobuf.a" ]; then
 else
   echo "==> Downloading protobuf ${PROTOBUF_VERSION}..."
   if [ ! -f "$PROTOBUF_TARBALL" ]; then
-    curl -L "$PROTOBUF_URL" -o "$PROTOBUF_TARBALL"
+    curl --fail --retry 5 --retry-delay 3 -L "$PROTOBUF_URL" -o "$PROTOBUF_TARBALL"
   else
     echo "    already downloaded, skipping"
   fi
@@ -207,14 +207,14 @@ if [[ "$OS" != "Darwin" ]]; then
     echo "==> Downloading ICU ${ICU_VERSION}..."
     for pair in "$ICU_TARBALL|$ICU_URL" "$ICU_DATA_ZIP|$ICU_DATA_URL"; do
       if [ ! -f "${pair%%|*}" ]; then
-        curl -L "${pair##*|}" -o "${pair%%|*}"
+        curl --fail --retry 5 --retry-delay 3 -L "${pair##*|}" -o "${pair%%|*}"
       else
         echo "    ${pair%%|*} already downloaded, skipping"
       fi
     done
 
     echo "==> Verifying checksums..."
-    curl -sL "$ICU_SHA512_LISTING_URL" -o "$SRC_DIR/icu-SHASUM512.txt"
+    curl --fail --retry 5 --retry-delay 3 -sL "$ICU_SHA512_LISTING_URL" -o "$SRC_DIR/icu-SHASUM512.txt"
     ( cd "$SRC_DIR" && grep -e "icu4c-${ICU_VERSION}-sources.tgz\$" -e "icu4c-${ICU_VERSION}-data.zip\$" icu-SHASUM512.txt | sha512sum -c - )
 
     echo "==> Extracting (sources + data sources)..."
@@ -256,9 +256,9 @@ fi
 # libphonenumber
 # ---------------------------------------------------------------------------
 
-LIBPHONE_VERSION="9.0.43"
+LIBPHONE_VERSION="9.0.44"
 LIBPHONE_URL="https://github.com/google/libphonenumber/archive/refs/tags/v${LIBPHONE_VERSION}.tar.gz"
-LIBPHONE_SHA256="bea4c2afec1fd43f4a7b3bda7b00dc99392ba1345dddd147059856889d174248"
+LIBPHONE_SHA256="ed3f2dd91e95d9c865772b62e51133eb5c8ca20f5a15e5f4064b4cc67d199185"
 LIBPHONE_TARBALL="$SRC_DIR/libphonenumber-${LIBPHONE_VERSION}.tar.gz"
 LIBPHONE_SRC="$BUILD_DIR/libphonenumber-${LIBPHONE_VERSION}"
 LIBPHONE_BUILD="$BUILD_DIR/libphonenumber-build"
@@ -288,7 +288,7 @@ if [ -f "$INSTALL_DIR/lib/libphonenumber.a" ]; then
 else
   echo "==> Downloading libphonenumber ${LIBPHONE_VERSION}..."
   if [ ! -f "$LIBPHONE_TARBALL" ]; then
-    curl -L "$LIBPHONE_URL" -o "$LIBPHONE_TARBALL"
+    curl --fail --retry 5 --retry-delay 3 -L "$LIBPHONE_URL" -o "$LIBPHONE_TARBALL"
   else
     echo "    already downloaded, skipping"
   fi
@@ -305,7 +305,7 @@ else
 
   echo "==> Downloading Boost compatibility patch..."
   if [ ! -f "$BOOST_PATCH_FILE" ]; then
-    curl -L "$BOOST_PATCH_URL" -o "$BOOST_PATCH_FILE"
+    curl --fail --retry 5 --retry-delay 3 -L "$BOOST_PATCH_URL" -o "$BOOST_PATCH_FILE"
     verify_sha256 "$BOOST_PATCH_SHA256" "$BOOST_PATCH_FILE"
   else
     echo "    already downloaded, skipping"
