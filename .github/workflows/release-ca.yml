@@ -498,6 +498,13 @@ jobs:
             exit 1
           fi
           echo "OK: plain install ignored the content-addressable prerelease"
+      # The runner's default Ruby ships APT-packaged RubyGems (Ubuntu/Debian patch it to
+      # refuse `gem update --system` entirely), so this step needs its own non-APT Ruby --
+      # the previous step deliberately uses the runner's stock Ruby instead, since testing
+      # against a real old/default client is the point of that check.
+      - uses: ruby/setup-ruby@b3aaceaef7e0ee231b499e7b5f49c03fc1d32199 # v1.338.0
+        with:
+          ruby-version: '3.4'
       - name: An upgraded --pre client must get the content-addressable gem and run it
         run: |
           for attempt in 1 2 3 4 5 6; do
