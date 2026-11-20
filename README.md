@@ -34,6 +34,8 @@ brew install libphonenumber
 sudo apt-get install libphonenumber-dev libicu-dev
 ```
 
+> **Trying the experimental content-addressable gem track?** A separate prerelease, opt-in via `gem install pico_phone --pre`, publishes a small gem per Ruby ABI instead of one fat gem with all of them bundled in. See the [`content-addressable` branch's README](https://github.com/gjack/pico_phone/blob/content-addressable/README.md#experimental-content-addressable-gems) for details — it's experimental, not for production use yet.
+
 ## Usage
 
 ### Checking if a phone number is valid
