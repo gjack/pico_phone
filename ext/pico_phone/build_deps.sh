@@ -34,7 +34,7 @@ if [ -f "$INSTALL_DIR/lib/libabsl_base.a" ]; then
 else
   echo "==> Downloading abseil ${ABSEIL_VERSION}..."
   if [ ! -f "$ABSEIL_TARBALL" ]; then
-    curl --fail --retry 5 --retry-delay 3 -L "$ABSEIL_URL" -o "$ABSEIL_TARBALL"
+    curl --fail --retry-all-errors --retry 10 --retry-max-time 180 -L "$ABSEIL_URL" -o "$ABSEIL_TARBALL"
   else
     echo "    already downloaded, skipping"
   fi
@@ -86,7 +86,7 @@ if [ -f "$INSTALL_DIR/lib/libprotobuf.a" ]; then
 else
   echo "==> Downloading protobuf ${PROTOBUF_VERSION}..."
   if [ ! -f "$PROTOBUF_TARBALL" ]; then
-    curl --fail --retry 5 --retry-delay 3 -L "$PROTOBUF_URL" -o "$PROTOBUF_TARBALL"
+    curl --fail --retry-all-errors --retry 10 --retry-max-time 180 -L "$PROTOBUF_URL" -o "$PROTOBUF_TARBALL"
   else
     echo "    already downloaded, skipping"
   fi
@@ -207,14 +207,14 @@ if [[ "$OS" != "Darwin" ]]; then
     echo "==> Downloading ICU ${ICU_VERSION}..."
     for pair in "$ICU_TARBALL|$ICU_URL" "$ICU_DATA_ZIP|$ICU_DATA_URL"; do
       if [ ! -f "${pair%%|*}" ]; then
-        curl --fail --retry 5 --retry-delay 3 -L "${pair##*|}" -o "${pair%%|*}"
+        curl --fail --retry-all-errors --retry 10 --retry-max-time 180 -L "${pair##*|}" -o "${pair%%|*}"
       else
         echo "    ${pair%%|*} already downloaded, skipping"
       fi
     done
 
     echo "==> Verifying checksums..."
-    curl --fail --retry 5 --retry-delay 3 -sL "$ICU_SHA512_LISTING_URL" -o "$SRC_DIR/icu-SHASUM512.txt"
+    curl --fail --retry-all-errors --retry 10 --retry-max-time 180 -sL "$ICU_SHA512_LISTING_URL" -o "$SRC_DIR/icu-SHASUM512.txt"
     ( cd "$SRC_DIR" && grep -e "icu4c-${ICU_VERSION}-sources.tgz\$" -e "icu4c-${ICU_VERSION}-data.zip\$" icu-SHASUM512.txt | sha512sum -c - )
 
     echo "==> Extracting (sources + data sources)..."
@@ -288,7 +288,7 @@ if [ -f "$INSTALL_DIR/lib/libphonenumber.a" ]; then
 else
   echo "==> Downloading libphonenumber ${LIBPHONE_VERSION}..."
   if [ ! -f "$LIBPHONE_TARBALL" ]; then
-    curl --fail --retry 5 --retry-delay 3 -L "$LIBPHONE_URL" -o "$LIBPHONE_TARBALL"
+    curl --fail --retry-all-errors --retry 10 --retry-max-time 180 -L "$LIBPHONE_URL" -o "$LIBPHONE_TARBALL"
   else
     echo "    already downloaded, skipping"
   fi
@@ -305,7 +305,7 @@ else
 
   echo "==> Downloading Boost compatibility patch..."
   if [ ! -f "$BOOST_PATCH_FILE" ]; then
-    curl --fail --retry 5 --retry-delay 3 -L "$BOOST_PATCH_URL" -o "$BOOST_PATCH_FILE"
+    curl --fail --retry-all-errors --retry 10 --retry-max-time 180 -L "$BOOST_PATCH_URL" -o "$BOOST_PATCH_FILE"
     verify_sha256 "$BOOST_PATCH_SHA256" "$BOOST_PATCH_FILE"
   else
     echo "    already downloaded, skipping"
