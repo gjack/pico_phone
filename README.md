@@ -34,6 +34,26 @@ brew install libphonenumber
 sudo apt-get install libphonenumber-dev libicu-dev
 ```
 
+## Experimental: content-addressable gems
+
+RubyGems/Bundler 4.1.0 added [content-addressable gems](https://blog.rubygems.org/2026/11/16/whats-new-rubygems-bundler-4-1.html): instead of one "fat" native gem per platform carrying a compiled binary for every supported Ruby ABI (currently 5 series, ~92MB for `arm64-darwin` alone), each Ruby ABI gets its own small gem, named by a content hash. pico_phone publishes this as an opt-in prerelease track (currently `0.9.0.pre.ca1`) alongside the normal releases above — it changes nothing about how the regular gem is built or installed.
+
+**This is experimental.** It tracks the same libphonenumber version as the latest stable release, is rebuilt (`ca2`, `ca3`, ...) as that release moves forward, and may eventually become the real way pico_phone ships — but for now it's for people who want to try it and report back, not for production use.
+
+Requires RubyGems/Bundler >= 4.1.0 (`gem update --system`) and Ruby >= 3.2 (RubyGems 4.1.0 itself doesn't run on Ruby 3.1, so that series isn't built for this track). To try it:
+
+```
+gem install pico_phone --pre
+```
+
+or in a Gemfile:
+
+```ruby
+gem 'pico_phone', '0.9.0.pre.ca1'
+```
+
+A plain `gem install pico_phone` / `bundle install` with no `--pre` will never select this version — regular users on regular RubyGems are unaffected.
+
 ## Usage
 
 ### Checking if a phone number is valid
